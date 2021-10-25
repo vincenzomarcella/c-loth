@@ -2,8 +2,10 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
+#include <unistd.h>
 
 #define RESTING_DISTANCE 10
+#define GRAVITY 10
 
 struct PointMass;
 
@@ -36,8 +38,8 @@ void update(struct PointMass* point, double dT){
         point->x = point->x + point->velX * 0.95 + point->accX * dT;
         point->y = point->y + point->velY * 0.95  + point->accY * dT;
 
-        point->accX = 0;
-        point->accY = 0;
+        // point->accX = 0;
+        // point->accY = 0;
     } else {
         point->x = point->fixedX;
         point->y = point->fixedY;
@@ -61,7 +63,6 @@ void constrain(struct PointMass* point) {
 }
 
 int main() {
-    printf("ciao");
     struct PointMass punto1 = {
         0,
         100,
@@ -70,7 +71,7 @@ int main() {
         0,
         0,
         0,
-        0.1,
+        GRAVITY,
         NULL,
         true,
         0,
@@ -84,7 +85,7 @@ int main() {
         0,
         0,
         0,
-        1,
+        GRAVITY,
         &punto1,
         false
     };
@@ -96,27 +97,28 @@ int main() {
         0,
         0,
         0,
-        1,
+        GRAVITY,
         &punto2,
         false
     };
-    for(int i = 0; i < 10; i++) {
+    // Collego il primo punto al punto 3 per fare un triangolo
+    punto1.neighbour = &punto3;
+
+    double dt = 1.0 / 300;
+
+    for(int i = 0; i < 1000; i++) {
+        
         constrain(&punto1);
         constrain(&punto2);
         constrain(&punto3);
-        update(&punto1, 0.1);
-        update(&punto2, 0.1);
-        update(&punto3, 0.1);
-        printf("PUNTO 1\n");
-        printf("X: %f\n", punto1.x);
-        printf("Y: %f\n", punto1.y);
-        printf("PUNTO 2\n");
-        printf("X: %f\n", punto2.x);
-        printf("Y: %f\n", punto2.y);
-        printf("PUNTO 3\n");
-        printf("X: %f\n", punto3.x);
-        printf("Y: %f\n", punto3.y);
-        printf("---\n");
+
+        update(&punto1, dt);
+        update(&punto2, dt);
+        update(&punto3, dt);
+        
+        printf("[%d] P1(%f %f) P2(%f %f) P3(%f %f)\n", i,
+            punto1.x, punto1.y, punto2.x, punto2.y, punto3.x, punto3.y);
+
     }
     return 0;
 }
