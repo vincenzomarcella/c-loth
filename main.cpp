@@ -8,18 +8,18 @@
 
 struct PointMass
 {
-    double x;
-    double y;
-    double oldX;
-    double oldY;
-    double velX;
-    double velY;
-    double accX;
-    double accY;
+    float x;
+    float y;
+    float oldX;
+    float oldY;
+    float velX;
+    float velY;
+    float accX;
+    float accY;
     PointMass *neighbour;
     bool fixed;
-    double fixedX;
-    double fixedY;
+    float fixedX;
+    float fixedY;
 };
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
