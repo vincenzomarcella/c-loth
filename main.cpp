@@ -2,8 +2,13 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <math.h>
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
 
-#define RESTING_DISTANCE 1
+#define RESTING_DISTANCE .5
 #define GRAVITY -1
 
 struct PointMass
@@ -17,6 +22,7 @@ struct PointMass
     float accX;
     float accY;
     PointMass *neighbour;
+    PointMass *neighbour2;
     bool fixed;
     float fixedX;
     float fixedY;
@@ -78,6 +84,18 @@ void constrain(struct PointMass* point) {
         point->y += translateY;
         point->neighbour->x -= translateX;
         point->neighbour->y -= translateY;
+    }
+    if(point->neighbour2){
+        diffX = point->x - point->neighbour2->x;
+        diffY = point->y - point->neighbour2->y;
+        d = sqrt(diffX * diffX + diffY * diffY);
+        difference = (RESTING_DISTANCE - d) / d;
+        translateX = diffX * 0.5 * difference;
+        translateY = diffY * 0.5 * difference;
+        point->x += translateX;
+        point->y += translateY;
+        point->neighbour2->x -= translateX;
+        point->neighbour2->y -= translateY;
     }
 }
 
@@ -167,36 +185,55 @@ int main()
         0,
         GRAVITY,
         NULL,
+        NULL,
         true,
         0,
         .5
     };
     struct PointMass punto2 = {
-        .4,
-        -.6,
-        .4,
-        -.6,
+        .5,
+        .5,
+        .5,
+        .5,
         0,
         0,
         0,
         GRAVITY,
         &punto1,
-        false
+        NULL,
+        true,
+        .5,
+        .5
     };
     struct PointMass punto3 = {
-        -.4,
-        -.6,
-        -.4,
-        -.6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        GRAVITY,
+        &punto1,
+        NULL,
+        false
+    };
+    struct PointMass punto4 = {
+        .5,
+        0,
+        .5,
+        0,
         0,
         0,
         0,
         GRAVITY,
         &punto2,
+        &punto3,
+        NULL,
         false
     };
     // Collego il primo punto al punto 3 per fare un triangolo
-    punto1.neighbour = &punto3;
+    //punto1.neighbour = &punto3;
 
 
     // uncom-0.5f,  0.5f, 0.0f,  // top left  ment this call to draw in wireframe polygons.
@@ -210,27 +247,25 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         i++;
-        constrain(&punto1);
-        constrain(&punto2);
-        constrain(&punto3);
-
-        physics_update(&punto1, dt);
-        physics_update(&punto2, dt);
-        physics_update(&punto3, dt);
         
-        printf("[%d] P1(%f %f) P2(%f %f) P3(%f %f)\n", i,
-            punto1.x, punto1.y, punto2.x, punto2.y, punto3.x, punto3.y);
+        printf("[%d] P1(%f %f) P2(%f %f) P3(%f %f) P4(%f %f)\n", i,
+            punto1.x, punto1.y, punto2.x, punto2.y, punto3.x, punto3.y, punto4.x, punto4.y);
 
         // set up vertex data (and buffer(s)) and configure vertex attributes
         // ------------------------------------------------------------------
         float vertices[] = {
-            punto1.x, punto1.y, 0.0f, // left  
-            punto2.x, punto2.y, 0.0f, // right 
-            punto3.x, punto3.y,  0.0f  // top   
-        }; 
+            punto1.x, punto1.y, 0.0f, // left top  
+            punto2.x, punto2.y, 0.0f, // right top
+            punto3.x, punto3.y,  0.0f, // left bottom
+            punto2.x, punto2.y, 0.0f, // right top
+            punto3.x, punto3.y,  0.0f, // left bottom
+            punto4.x, punto4.y, 0.0f // right bottom
+        };
 
         unsigned int VBO, VAO;
+        // generate vertex array object names
         glGenVertexArrays(1, &VAO);
+        // generate buffer object names
         glGenBuffers(1, &VBO);
         // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
         glBindVertexArray(VAO);
@@ -257,16 +292,27 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // draw our first triangle
+        // draw triangle
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
         // glBindVertexArray(0); // no need to unbind it every time 
  
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+        //sleep(1);
+
+        constrain(&punto1);
+        constrain(&punto2);
+        constrain(&punto3);
+        constrain(&punto4);
+
+        physics_update(&punto1, dt);
+        physics_update(&punto2, dt);
+        physics_update(&punto3, dt);
+        physics_update(&punto4, dt);
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
