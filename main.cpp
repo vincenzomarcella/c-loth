@@ -29,6 +29,14 @@ struct Vec2d {
         y -= vec.y;
     }
 
+    double get_x() {
+        return x;
+    }
+
+    double get_y() {
+        return y;
+    }
+
     double magnitude() {
         // Returns the magnitude of the vector
         return sqrt(x * x + y * y);
@@ -47,17 +55,15 @@ struct Vec2d {
         double y;
 };
 
-const Vec2d GRAVITY{ 0, 10 };
+const Vec2d GRAVITY{ 0, 1 };
 
 struct PointMass {
     const float DAMPING = .05;
-    const float RESTING_DISTANCE = 10;
+    const float RESTING_DISTANCE = 5;
     
     PointMass(double x, double y, bool fixed, int n_neighbors=1)
         : pos{ Vec2d{ x, y } }, fixed{ fixed }, n_neighbors{ n_neighbors } {
         old_pos = Vec2d{ &pos };
-        vel = Vec2d{};
-        acc = Vec2d{};
         fixed_pos = Vec2d{ &pos };
         // Storing pointer to dynamic array
         neighbors = new PointMass*[n_neighbors]{};
@@ -66,6 +72,14 @@ struct PointMass {
     ~PointMass() {
         // Deallocates dynamic array
         delete[] neighbors;
+    }
+
+    double get_pos_x() {
+        return pos.get_x();
+    }
+
+    double get_pos_y() {
+        return pos.get_y();
     }
 
     void add_neighbor(PointMass* neighbor_ptr) {
@@ -93,7 +107,7 @@ struct PointMass {
                 diff = pos - neighbors[i]->pos;
                 d = diff.magnitude();
                 if (abs(d) <= 0)
-                    d = 0.01;
+                    d = 0.001;
                 difference = (RESTING_DISTANCE - d) / d;
                 translate = diff * 0.5 * difference;
                 pos += translate;
@@ -121,8 +135,8 @@ struct PointMass {
     private:
         Vec2d pos;
         Vec2d old_pos;
-        Vec2d vel;
-        Vec2d acc;
+        Vec2d vel{};
+        Vec2d acc{};
         bool fixed;
         Vec2d fixed_pos;
         // Pointer to dynamic array containing pointers to PointMass neighbors 
@@ -135,35 +149,39 @@ double get_deltat() {
 }
 
 int main() {
-    PointMass pm1{0, 100, true};
-    PointMass pm2{5, 90, false};
-    PointMass pm3{-5, 90, false};
+    PointMass pm1{0, 0, true};
+    PointMass pm2{1.5, 4, false};
+    PointMass pm3{-1.5, 4, false};
 
     pm3.add_neighbor(&pm2);
     pm2.add_neighbor(&pm1);
     pm1.add_neighbor(&pm3);
 
-    PointMass points[]{pm1, pm2, pm3};
+    PointMass* points[]{&pm1, &pm2, &pm3};
+
+    for (int l = 0; l < 3; l++) {
+        printf("P%d ", l + 1);
+        points[l]->print();
+    }
 
     printf("Simulating 1000 timesteps..\n");
 
-    int i, j, k, l;
+    int i, j;
     for (i = 0; i < 1000; i++) {
-
         for (j = 0; j < 3; j++) {
-            points[j].apply_force(GRAVITY);
-            points[j].constrain();
+            points[j]->apply_force(GRAVITY);
+            points[j]->constrain();
         }
-        for (k = 0; k < 3; k++) {
-            points[k].update(get_deltat());
+        for (j = 0; j < 3; j++) {
+            points[j]->update(get_deltat());
         }
-    }
 
-    for (l = 0; l < 3; l++) {
-        printf("P%d ", l + 1);
-        points[l].print();
+        printf("P1(%f %f) P2(%f %f) P3(%f %f)\n",
+            points[0]->get_pos_x(), points[0]->get_pos_y(),
+            points[1]->get_pos_x(), points[1]->get_pos_y(),
+            points[2]->get_pos_x(), points[2]->get_pos_y()
+        );
     }
-    printf("\n");
     
 }
 
