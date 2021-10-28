@@ -136,11 +136,15 @@ unsigned int getVBO() {
     // Copying user-defined vertex data into buffer's memory
     // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
-    // Telling OpenGL how to interpret the vertex data
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
     return VBO;
+}
+
+unsigned int getEBO() {
+    unsigned int EBO;
+    glGenBuffers(1, &EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+    return EBO;
 }
 
 void drawFrame(GLFWwindow* window, int shaderProgram, unsigned int VAO) {
@@ -153,12 +157,18 @@ void drawFrame(GLFWwindow* window, int shaderProgram, unsigned int VAO) {
     // Binding the VAO
     glBindVertexArray(VAO);
     // Drawing the triangle
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     // Swap buffers 
     glfwSwapBuffers(window);
     // Handles input and calls registered callbacks
     glfwPollEvents();
+}
+
+void setVertexDataInterpretation() {
+    // Telling OpenGL how to interpret the vertex data
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 }
 
 void collectGarbage(unsigned int VAO, unsigned int VBO, unsigned int shaderProgram) {

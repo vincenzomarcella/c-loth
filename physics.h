@@ -1,6 +1,12 @@
 #include <cstdio>
 #include <cmath>
 
+double min(double a, double b) {
+    if (a < b)
+        return a;
+    return b;
+}
+
 struct Vec2d {
     // Constructors
     Vec2d(double x, double y) : x{ x }, y{ y } {}
@@ -51,7 +57,7 @@ const Vec2d GRAVITY{ 0, -1 };
 
 struct PointMass {
     const float DAMPING = .05;
-    const float RESTING_DISTANCE = 1.5; // small values make the simulation explode
+    const float RESTING_DISTANCE = 1; // small values make the simulation explode
                                         // (maybe values smaller than the starting position distance?)
     
     PointMass(double x, double y, bool fixed, int n_neighbors=1)
@@ -60,6 +66,7 @@ struct PointMass {
         fixed_pos = Vec2d{ &pos };
         // Storing pointer to dynamic array
         neighbors = new PointMass*[n_neighbors]{};
+        printf("%d\n", n_neighbors);
     }
 
     ~PointMass() {
@@ -101,7 +108,7 @@ struct PointMass {
                 d = diff.magnitude();
                 if (abs(d) <= 0)
                     d = 0.001;
-                difference = (RESTING_DISTANCE - d) / d;
+                difference = (min(d, RESTING_DISTANCE) - d) / d;
                 translate = diff * 0.5 * difference;
                 pos += translate;
                 neighbors[i]->pos -= translate;
