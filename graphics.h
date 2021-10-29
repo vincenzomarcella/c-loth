@@ -32,7 +32,7 @@ GLFWwindow* createWindow(int width, int height) {
     // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); for MacOs
 
     // Creating GLFW window
-    GLFWwindow* window = glfwCreateWindow(width, height, "LearnOpengGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(width, height, "C-loth", NULL, NULL);
     if (window == NULL) {
         printf("Failed to create GLFW window\n");
         glfwTerminate();
@@ -147,7 +147,7 @@ unsigned int getEBO() {
     return EBO;
 }
 
-void drawFrame(GLFWwindow* window, int shaderProgram, unsigned int VAO) {
+void drawFrame(GLFWwindow* window, int nTriangles, int shaderProgram, unsigned int VAO) {
     // Clearing the screen
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -157,7 +157,7 @@ void drawFrame(GLFWwindow* window, int shaderProgram, unsigned int VAO) {
     // Binding the VAO
     glBindVertexArray(VAO);
     // Drawing the triangle
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, nTriangles, GL_UNSIGNED_INT, 0);
 
     // Swap buffers 
     glfwSwapBuffers(window);
