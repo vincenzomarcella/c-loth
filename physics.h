@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cmath>
+#include <random>
 
 double min(double a, double b) {
     if (a < b)
@@ -53,12 +54,12 @@ struct Vec2d {
         double y;
 };
 
-const Vec2d GRAVITY{ 0, -1 };
+const Vec2d GRAVITY{ 0, -10 };
 
 struct PointMass {
     const float DAMPING = .05;
-    const float RESTING_DISTANCE = 1; // small values make the simulation explode
-                                        // (maybe values smaller than the starting position distance?)
+    const float RESTING_DISTANCE = 5;
+    const float ELASTICITY = 0.3; // from 0 to 1 (the lower the more stiff are the joints)
     
     PointMass(double x, double y, bool fixed, int n_neighbors=1)
         : pos{ Vec2d{ x, y } }, fixed{ fixed }, n_neighbors{ n_neighbors } {
@@ -66,7 +67,6 @@ struct PointMass {
         fixed_pos = Vec2d{ &pos };
         // Storing pointer to dynamic array
         neighbors = new PointMass*[n_neighbors]{};
-        printf("%d\n", n_neighbors);
     }
 
     ~PointMass() {
@@ -80,6 +80,10 @@ struct PointMass {
 
     float get_pos_y() {
         return (float)pos.get_y();
+    }
+
+    void fix_position() {
+        fixed = true;
     }
 
     void add_neighbor(PointMass* neighbor_ptr) {
@@ -99,17 +103,16 @@ struct PointMass {
     }
 
     void constrain() {
-        // Same as master branch, but using vectors and dealing with multiple neighbors
         static Vec2d diff, translate;
         static double d, difference;
         for (int i = 0; i < n_neighbors; i++) {
             if (neighbors[i]) {
                 diff = pos - neighbors[i]->pos;
                 d = diff.magnitude();
-                if (abs(d) <= 0)
+                if (d <= 0)
                     d = 0.001;
                 difference = (min(d, RESTING_DISTANCE) - d) / d;
-                translate = diff * 0.5 * difference;
+                translate = diff * ELASTICITY * difference;
                 pos += translate;
                 neighbors[i]->pos -= translate;
             }
@@ -117,7 +120,6 @@ struct PointMass {
     }
 
     void update(double dt) {
-        // Same as master branch, but using vectors
         if (fixed) {
             pos = fixed_pos;
         } else {
@@ -140,9 +142,12 @@ struct PointMass {
         int n_neighbors;
 };
 
-void timestep(PointMass** points, int n_points, int j, double dt) {
+void timestep(PointMass** points, int n_points, double dt) {
+    // Vec2d wind{40.0 * (rand() % 100 - 50) / 100, 50.0 * (rand() % 100 - 50) / 100};
+    int j;
     for (j = 0; j < n_points; j++) {
         points[j]->apply_force(GRAVITY);
+        // points[j]->apply_force(wind);
         points[j]->constrain();
     }
     for (j = 0; j < n_points; j++) {
