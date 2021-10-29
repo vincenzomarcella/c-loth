@@ -147,7 +147,7 @@ unsigned int getEBO() {
     return EBO;
 }
 
-void drawFrame(GLFWwindow* window, int nTriangles, int shaderProgram, unsigned int VAO) {
+void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int VAO) {
     // Clearing the screen
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -157,7 +157,7 @@ void drawFrame(GLFWwindow* window, int nTriangles, int shaderProgram, unsigned i
     // Binding the VAO
     glBindVertexArray(VAO);
     // Drawing the triangle
-    glDrawElements(GL_TRIANGLES, nTriangles, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
 
     // Swap buffers 
     glfwSwapBuffers(window);
