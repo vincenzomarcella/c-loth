@@ -1,45 +1,66 @@
 #include <cstdio>
+#include <chrono>
+#include <thread>
 
 #include "physics.h"
 #include "graphics.h"
 
 #include <GLFW/glfw3.h>
 
-double get_deltat() {
-    return 1.0 / 300;
+double map_in_range(double value, double from, double to, double mapFrom, double mapTo) {
+    return  mapFrom + (mapTo - mapFrom) * (value - from) / (to - from);
 }
 
+const int framesPerSecond = 60;
+const double secondsPerFrame = 1.0 / framesPerSecond;
+
+const int WIDTH = 40;
+const int HEIGHT = 20;
+
 int main() {
-    GLFWwindow* window = createWindow(400, 300);
+    PointMass* points[WIDTH * HEIGHT]{};
+
+    int i, j;
+    for (i = 0; i < HEIGHT; i++)
+        for (j = 0; j < WIDTH; j++) {
+            PointMass* pm = new PointMass{
+                j * 5.0 - 100,
+                i * 50.0 + 100,
+                false,
+                1 + (int)(i > 0 && j > 0)
+            };
+            if (i > 0)
+                pm->add_neighbor(points[(i - 1) * WIDTH + j]);
+            if (j > 0)
+                pm->add_neighbor(points[i * WIDTH + j - 1]);
+
+            points[i * WIDTH + j] = pm;
+        }
+    // Fixing once every 10 points on the top row
+    for (j = 0; j < WIDTH / 10; j++)
+        points[j * 10]->fix_position();
+
+    int n_points = sizeof(points) / sizeof(PointMass*);
+
+    float vertices[3 * n_points]{};
+    unsigned int indices[(WIDTH - 1) * (HEIGHT - 1) * 2 * 3]{};
+    
+    for (i = 0; i < HEIGHT - 1; i++)
+        for (j = 0; j < WIDTH - 1; j++) {
+            indices[6 * (i * (WIDTH - 1) + j)    ] = i * WIDTH + j;
+            indices[6 * (i * (WIDTH - 1) + j) + 1] = i * WIDTH + j + 1;
+            indices[6 * (i * (WIDTH - 1) + j) + 2] = (i + 1) * WIDTH + j;
+
+            indices[6 * (i * (WIDTH - 1) + j) + 3] = i * WIDTH + j + 1;
+            indices[6 * (i * (WIDTH - 1) + j) + 4] = (i + 1) * WIDTH + j;
+            indices[6 * (i * (WIDTH - 1) + j) + 5] = (i + 1) * WIDTH + j + 1;
+        }
+
+    GLFWwindow* window = createWindow(600, 600);
     if (!window || !loadGlad())
         return -1;
 
     unsigned int shaderProgram = getShaderProgram();
-
-    PointMass pm1{-0.5, 0.5, true};
-    PointMass pm2{0.5, 0.5, true};
-    PointMass pm3{0.5, -0.4, false, 2};
-    PointMass pm4{-0.4, -0.5, false};
-
-    pm3.add_neighbor(&pm2);
-    pm3.add_neighbor(&pm4);
-    pm2.add_neighbor(&pm1);
-    pm4.add_neighbor(&pm1);
-
-    PointMass* points[]{&pm1, &pm2, &pm3, &pm4};
-
-    // Defining rectangle vertices
-    float vertices[] = {
-        pm1.get_pos_x(), pm1.get_pos_y(), 0.0f, // x, y, z
-        pm2.get_pos_x(), pm2.get_pos_y(), 0.0f,
-        pm3.get_pos_x(), pm3.get_pos_y(), 0.0f,
-        pm4.get_pos_x(), pm4.get_pos_y(), 0.0f,
-    };
-
-    unsigned int indices[] = {
-        0, 1, 3,
-        1, 3, 2,
-    };
     
     unsigned int VAO = getVAO();
     unsigned int VBO = getVBO();
@@ -48,31 +69,43 @@ int main() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 
     setVertexDataInterpretation();
-    
-    int j, n_points = sizeof(points) / sizeof(PointMass*);
+
+    double current_time, last_time = 0, elapsed;
+
     // Render loop
     while (!glfwWindowShouldClose(window)) {
+        current_time = glfwGetTime();
+        elapsed = current_time - last_time;
+        last_time = current_time;
+
+        // printf("%f ms\n", elapsed * 1000);
+
+        if (elapsed < secondsPerFrame) {
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds((int)((secondsPerFrame - elapsed) * 1000)));
+        }
+
         processInput(window);
 
-        timestep(points, n_points, j, get_deltat());
+        timestep(points, n_points, secondsPerFrame);
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
-            vertices[j * 3] = points[j]->get_pos_x();
-            vertices[j * 3 + 1] = points[j]->get_pos_y();
+            vertices[j * 3] = map_in_range(points[j]->get_pos_x(), -200, 200, -1, 1);
+            vertices[j * 3 + 1] = map_in_range(points[j]->get_pos_y(), -200, 200, -1, 1);
         }
+
         // Loading vertices into buffer
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
-        drawFrame(window, shaderProgram, VAO);
+        drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
 
-        printf("P1(%f %f) P2(%f %f) P3(%f %f) P4(%f %f)\n",
-            points[0]->get_pos_x(), points[0]->get_pos_y(),
-            points[1]->get_pos_x(), points[1]->get_pos_y(),
-            points[2]->get_pos_x(), points[2]->get_pos_y(),
-            points[3]->get_pos_x(), points[3]->get_pos_y()
-
-        );
+        // printf("P1(%f %f) P2(%f %f) P3(%f %f) P4(%f %f) P5(%f %f) P6(%f %f)\n",
+        //     points[0]->get_pos_x(), points[0]->get_pos_y(),
+        //     points[1]->get_pos_x(), points[1]->get_pos_y(),
+        //     points[2]->get_pos_x(), points[2]->get_pos_y(),
+        //     points[3]->get_pos_x(), points[3]->get_pos_y()
+        // );
     }
 
     collectGarbage(VAO, VBO, shaderProgram);
