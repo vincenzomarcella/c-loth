@@ -44,9 +44,12 @@ struct Vec2d {
         return y;
     }
 
-    double magnitude() {
+    double magnitude(bool squared=false) {
         // Returns the magnitude of the vector
-        return sqrt(x * x + y * y);
+        double magnitude_squared = x * x + y * y;
+        if (!squared)
+            return sqrt(magnitude_squared);
+        return magnitude_squared;
     }
 
     private:
@@ -54,12 +57,12 @@ struct Vec2d {
         double y;
 };
 
-const Vec2d GRAVITY{ 0, -10 };
+const Vec2d GRAVITY{ 0, -30 };
 
 struct PointMass {
-    const float DAMPING = .05;
-    const float RESTING_DISTANCE = 5;
-    const float ELASTICITY = 0.3; // from 0 to 1 (the lower the more stiff are the joints)
+    const float DAMPING = .03;
+    const float RESTING_DISTANCE = 10;
+    const float STIFFNESS = 0.9; // from 0 to 1
     
     PointMass(double x, double y, bool fixed, int n_neighbors=1)
         : pos{ Vec2d{ x, y } }, fixed{ fixed }, n_neighbors{ n_neighbors } {
@@ -72,6 +75,10 @@ struct PointMass {
     ~PointMass() {
         // Deallocates dynamic array
         delete[] neighbors;
+    }
+
+    Vec2d get_pos() {
+        return pos;
     }
 
     float get_pos_x() {
@@ -112,7 +119,7 @@ struct PointMass {
                 if (d <= 0)
                     d = 0.001;
                 difference = (min(d, RESTING_DISTANCE) - d) / d;
-                translate = diff * ELASTICITY * difference;
+                translate = diff * 0.5 * STIFFNESS * difference;
                 pos += translate;
                 neighbors[i]->pos -= translate;
             }
@@ -142,15 +149,17 @@ struct PointMass {
         int n_neighbors;
 };
 
-void timestep(PointMass** points, int n_points, double dt) {
-    // Vec2d wind{40.0 * (rand() % 100 - 50) / 100, 50.0 * (rand() % 100 - 50) / 100};
-    int j;
+void timestep(PointMass** points, int n_points, int iterations, double dt, Vec2d mouse_pos, Vec2d mouse_vel) {
+    int i, j;
+    for (i = 0; i < iterations; i++) {
+        for (j = 0; j < n_points; j++)
+            points[j]->constrain();
+    }
+
     for (j = 0; j < n_points; j++) {
         points[j]->apply_force(GRAVITY);
-        // points[j]->apply_force(wind);
-        points[j]->constrain();
-    }
-    for (j = 0; j < n_points; j++) {
+        if ((points[j]->get_pos() - mouse_pos).magnitude(true) < 200)
+            points[j]->apply_force(mouse_vel * 100);
         points[j]->update(dt);
     }
 }
