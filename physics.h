@@ -57,12 +57,12 @@ struct Vec2d {
         double y;
 };
 
-const Vec2d GRAVITY{ 0, -30 };
+const Vec2d GRAVITY{ 0, -25 };
 
 struct PointMass {
     const float DAMPING = .03;
-    const float RESTING_DISTANCE = 10;
-    const float STIFFNESS = 0.9; // from 0 to 1
+    const float RESTING_DISTANCE = 8;
+    const float STIFFNESS = 0.8; // from 0 to 1
     
     PointMass(double x, double y, bool fixed, int n_neighbors=1)
         : pos{ Vec2d{ x, y } }, fixed{ fixed }, n_neighbors{ n_neighbors } {
@@ -159,7 +159,7 @@ void timestep(PointMass** points, int n_points, int iterations, double dt, Vec2d
     for (j = 0; j < n_points; j++) {
         points[j]->apply_force(GRAVITY);
         if ((points[j]->get_pos() - mouse_pos).magnitude(true) < 200)
-            points[j]->apply_force(mouse_vel * 100);
+            points[j]->apply_force(mouse_vel * 60);
         points[j]->update(dt);
     }
 }

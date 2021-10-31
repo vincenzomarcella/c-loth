@@ -11,8 +11,24 @@ double map_in_range(double value, double from, double to, double mapFrom, double
     return  mapFrom + (mapTo - mapFrom) * (value - from) / (to - from);
 }
 
-const int framesPerSecond = 120;
-const double secondsPerFrame = 1.0 / framesPerSecond;
+// TODO:
+//  - texture the cloth
+//  - pin/unpin points
+//  - switch from wireframe to fill mode
+//  - lock framerate
+//  - add tearability
+//  - drag points
+//  - add the z axis
+//  - collision with an object (circle or sphere)
+//  - shade the cloth
+//  - experiment with different types of links between points
+//  - add wind (using perlin noise)
+
+const int TARGET_FPS = 60;
+const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
+
+const int N_PHYSICS_UPDATE = 3;
+const int N_CONSTRAIN_SOLVE = 8;
 
 const int WIDTH = 50;
 const int HEIGHT = 30;
@@ -45,15 +61,15 @@ int main() {
     //             points[i * WIDTH + j]->add_neighbor(points[(i - 1) * WIDTH + j + 1]);
 
     // Fixing once every 10 points on the top row
-    // for (j = 0; j < WIDTH / 10; j++)
-    //     points[j * 10]->fix_position();
+    // for (j = 0; j < WIDTH; j++)
+    //     points[j]->fix_position();
     // points[WIDTH - 1]->fix_position();
 
     // Fixing corners
     points[0]->fix_position();
     points[WIDTH - 1]->fix_position();
-    // points[WIDTH * (HEIGHT - 1)]->fix_position();
-    // points[WIDTH * HEIGHT - 1]->fix_position();
+    points[WIDTH * (HEIGHT - 1)]->fix_position();
+    points[WIDTH * HEIGHT - 1]->fix_position();
 
     int n_points = sizeof(points) / sizeof(PointMass*);
 
@@ -84,11 +100,12 @@ int main() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 
     setVertexDataInterpretation();
+    // Wireframe mode
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    double current_time, last_time = 0, elapsed;
-
-    int n_physics_update = 5;
-    int n_constrain_solve = 10;
+    int frame = 0;
+    double current_time, elapsed, last_time = 0;
+    double avg_fps = 0, avg_ms = 0;
 
     int width, height;
     double xpos, ypos;
@@ -96,15 +113,17 @@ int main() {
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
+        frame = frame % 500 + 1;
         current_time = glfwGetTime();
         elapsed = current_time - last_time;
         last_time = current_time;
 
-        // printf("%f ms\n", elapsed * 1000);
+        avg_fps = ((avg_fps * (frame - 1)) + (1 / elapsed)) / frame;
+        avg_ms = ((avg_ms * (frame - 1)) + elapsed) / frame; 
 
-        if (elapsed < secondsPerFrame) {
+        if (elapsed < SECONDSPERFRAME) {
             std::this_thread::sleep_for(
-                std::chrono::milliseconds((int)((secondsPerFrame - elapsed) * 1000)));
+                std::chrono::milliseconds((int)((SECONDSPERFRAME - elapsed) * 1000)));
         }
 
         processInput(window);
@@ -117,10 +136,9 @@ int main() {
         mouse_pos = Vec2d{ xpos, ypos };
         mouse_vel = mouse_pos - old_mouse_pos; 
         old_mouse_pos = mouse_pos;
-        // printf("%f %f\n", mouse_vel.get_x(), mouse_vel.get_y());
 
-        for (i = 0; i < n_physics_update; i++)
-            timestep(points, n_points, n_constrain_solve, secondsPerFrame / n_physics_update, mouse_pos, mouse_vel);
+        for (i = 0; i < N_PHYSICS_UPDATE; i++)
+            timestep(points, n_points, N_CONSTRAIN_SOLVE, SECONDSPERFRAME / N_PHYSICS_UPDATE, mouse_pos, mouse_vel);
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
@@ -132,14 +150,10 @@ int main() {
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
         drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
-
-        // printf("P1(%f %f) P2(%f %f) P3(%f %f) P4(%f %f) P5(%f %f) P6(%f %f)\n",
-        //     points[0]->get_pos_x(), points[0]->get_pos_y(),
-        //     points[1]->get_pos_x(), points[1]->get_pos_y(),
-        //     points[2]->get_pos_x(), points[2]->get_pos_y(),
-        //     points[3]->get_pos_x(), points[3]->get_pos_y()
-        // );
     }
 
     collectGarbage(VAO, VBO, shaderProgram);
+
+    printf("%02d fps %.2f ms \r", (int)avg_fps, avg_ms * 1000);
+
 }
