@@ -26,6 +26,7 @@ void processInput(GLFWwindow* window) {
 
 GLFWwindow* createWindow(int width, int height) {
     glfwInit();
+    glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -40,6 +41,8 @@ GLFWwindow* createWindow(int width, int height) {
     }
     // Making the created window the current context
     glfwMakeContextCurrent(window);
+    // The number of screen updates to wait before swapping buffers
+    glfwSwapInterval(1);
     // Binding a callback to allow resizing
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 

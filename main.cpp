@@ -123,13 +123,8 @@ int main() {
 
         avg_fps = ((avg_fps * (frame - 1)) + (1 / elapsed)) / frame;
         avg_ms = ((avg_ms * (frame - 1)) + elapsed) / frame; 
-
-        if (elapsed < SECONDSPERFRAME) {
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds((int)((SECONDSPERFRAME - elapsed) * 1000)));
-        }
-
         processInput(window);
+        printf("%02d fps %.2f ms \r", (int)avg_fps, avg_ms * 1000);
 
         glfwGetCursorPos(window, &xpos, &ypos);
         glfwGetWindowSize(window, &width, &height);
@@ -156,7 +151,4 @@ int main() {
     }
 
     collectGarbage(VAO, VBO, shaderProgram);
-
-    printf("%02d fps %.2f ms \r", (int)avg_fps, avg_ms * 1000);
-
 }
