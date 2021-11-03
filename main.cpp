@@ -1,345 +1,160 @@
-#include <glad/glad.h>
+#include <cstdio>
+#include <chrono>
+#include <thread>
+
+#include "physics.h"
+#include "graphics.h"
+
 #include <GLFW/glfw3.h>
-#include <iostream>
-#include <math.h>
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
 
-#define RESTING_DISTANCE .5
-#define GRAVITY -1
-
-struct PointMass
-{
-    float x;
-    float y;
-    float oldX;
-    float oldY;
-    float velX;
-    float velY;
-    float accX;
-    float accY;
-    PointMass *neighbour;
-    PointMass *neighbour2;
-    bool fixed;
-    float fixedX;
-    float fixedY;
-};
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
-
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
-
-const char *vertexShaderSource = "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "}\0";
-const char *fragmentShaderSource = "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\n\0";
-
-// physics: update the attributes for all the vertices 
-// ---------------------------------------------------------------------------------------------
-void physics_update(struct PointMass* point, double dT) {
-    if(point->fixed == false){
-        point->velX = point->x - point->oldX;
-        point->velY = point->y - point->oldY;
-
-        point->oldX = point->x;
-        point->oldY = point->y;
-
-        point->x = point->x + point->velX * 0.95 + point->accX * dT;
-        point->y = point->y + point->velY * 0.95  + point->accY * dT;
-
-        // point->accX = 0;
-        // point->accY = 0;
-    } else {
-        point->x = point->fixedX;
-        point->y = point->fixedY;
-    }
+double map_in_range(double value, double from, double to, double mapFrom, double mapTo) {
+    return  mapFrom + (mapTo - mapFrom) * (value - from) / (to - from);
 }
 
-// physics: constrain all the vertices based on their neighbours
-// ---------------------------------------------------------------------------------------------
-void constrain(struct PointMass* point) {
-    double diffX, diffY, translateX, translateY, d, difference;
-    if(point->neighbour){
-        diffX = point->x - point->neighbour->x;
-        diffY = point->y - point->neighbour->y;
-        d = sqrt(diffX * diffX + diffY * diffY);
-        difference = (RESTING_DISTANCE - d) / d;
-        translateX = diffX * 0.5 * difference;
-        translateY = diffY * 0.5 * difference;
-        point->x += translateX;
-        point->y += translateY;
-        point->neighbour->x -= translateX;
-        point->neighbour->y -= translateY;
-    }
-    if(point->neighbour2){
-        diffX = point->x - point->neighbour2->x;
-        diffY = point->y - point->neighbour2->y;
-        d = sqrt(diffX * diffX + diffY * diffY);
-        difference = (RESTING_DISTANCE - d) / d;
-        translateX = diffX * 0.5 * difference;
-        translateY = diffY * 0.5 * difference;
-        point->x += translateX;
-        point->y += translateY;
-        point->neighbour2->x -= translateX;
-        point->neighbour2->y -= translateY;
-    }
-}
+// TODO:
+//  - texture the cloth
+//  - pin/unpin points
+//  - switch from wireframe to fill mode
+//  - lock framerate
+//  - add tearability
+//  - drag points
+//  - add the z axis
+//  - collision with an object (circle or sphere)
+//  - shade the cloth
+//  - experiment with different types of links between points
+//  - add wind (using perlin noise)
 
+const int TARGET_FPS = 60;
+const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
+const int N_PHYSICS_UPDATE = 3;
+const int N_CONSTRAIN_SOLVE = 8;
 
-int main()
-{
-    // glfw: initialize and configure
-    // ------------------------------
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+const int WIDTH = 50;
+const int HEIGHT = 30;
 
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
+int main() {
+    PointMass* points[WIDTH * HEIGHT]{};
 
-    // glfw window creation
-    // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-    if (window == NULL)
-    {
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
+    int i, j;
+    for (i = 0; i < HEIGHT; i++)
+        for (j = 0; j < WIDTH; j++) {
+            PointMass* pm = new PointMass{
+                j * 10.0 - 250,
+                i * -10.0 + 250,
+                false,
+                1 + 1 * (int)(i > 0 && j > 0) //+  (int)(i > 0 && j < WIDTH - 1)
+            };
+            if (i > 0)
+                pm->add_neighbor(points[(i - 1) * WIDTH + j]);
+            if (j > 0)
+                pm->add_neighbor(points[i * WIDTH + j - 1]);
+            // if (i > 0 && j > 0)
+            //     pm->add_neighbor(points[(i - 1) * WIDTH + j - 1]);
+
+            points[i * WIDTH + j] = pm;
+        }   
+
+    // for (i = 0; i < HEIGHT; i++)
+    //     for (j = 0; j < WIDTH; j++)
+    //         if (i > 0 && j < WIDTH - 1)
+    //             points[i * WIDTH + j]->add_neighbor(points[(i - 1) * WIDTH + j + 1]);
+
+    // Fixing once every 10 points on the top row
+    // for (j = 0; j < WIDTH; j++)
+    //     points[j]->fix_position();
+    // points[WIDTH - 1]->fix_position();
+
+    // Fixing corners
+    points[0]->fix_position();
+    points[WIDTH - 1]->fix_position();
+    points[WIDTH * (HEIGHT - 1)]->fix_position();
+    points[WIDTH * HEIGHT - 1]->fix_position();
+
+    int n_points = sizeof(points) / sizeof(PointMass*);
+
+    float vertices[3 * n_points]{};
+    unsigned int indices[(WIDTH - 1) * (HEIGHT - 1) * 2 * 3]{};
+    
+    for (i = 0; i < HEIGHT - 1; i++)
+        for (j = 0; j < WIDTH - 1; j++) {
+            indices[6 * (i * (WIDTH - 1) + j)    ] = i * WIDTH + j;
+            indices[6 * (i * (WIDTH - 1) + j) + 1] = i * WIDTH + j + 1;
+            indices[6 * (i * (WIDTH - 1) + j) + 2] = (i + 1) * WIDTH + j;
+
+            indices[6 * (i * (WIDTH - 1) + j) + 3] = i * WIDTH + j + 1;
+            indices[6 * (i * (WIDTH - 1) + j) + 4] = (i + 1) * WIDTH + j;
+            indices[6 * (i * (WIDTH - 1) + j) + 5] = (i + 1) * WIDTH + j + 1;
+        }
+
+    GLFWwindow* window = createWindow(800, 800);
+    if (!window || !loadGlad())
         return -1;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
+    unsigned int shaderProgram = getShaderProgram();
+    
+    unsigned int VAO = getVAO();
+    unsigned int VBO = getVBO();
+    unsigned int EBO = getEBO();
 
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 
-    // build and compile our shader program
-    // ------------------------------------
-    // vertex shader
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-    // check for shader compile errors
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    // fragment shader
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-    // check for shader compile errors
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    // link shaders
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    // check for linking errors
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    setVertexDataInterpretation();
+    // Wireframe mode
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    struct PointMass punto1 = {
-        0,
-        .5,
-        0,
-        .5,
-        0,
-        0,
-        0,
-        GRAVITY,
-        NULL,
-        NULL,
-        true,
-        0,
-        .5
-    };
-    struct PointMass punto2 = {
-        .5,
-        .5,
-        .5,
-        .5,
-        0,
-        0,
-        0,
-        GRAVITY,
-        &punto1,
-        NULL,
-        true,
-        .5,
-        .5
-    };
-    struct PointMass punto3 = {
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        GRAVITY,
-        &punto1,
-        NULL,
-        false
-    };
-    struct PointMass punto4 = {
-        .5,
-        0,
-        .5,
-        0,
-        0,
-        0,
-        0,
-        GRAVITY,
-        &punto2,
-        &punto3,
-        NULL,
-        false
-    };
-    // Collego il primo punto al punto 3 per fare un triangolo
-    //punto1.neighbour = &punto3;
+    int frame = 0;
+    double current_time, elapsed, last_time = 0;
+    double avg_fps = 0, avg_ms = 0;
 
+    int width, height;
+    double xpos, ypos;
+    Vec2d mouse_pos, old_mouse_pos, mouse_vel;
 
-    // uncom-0.5f,  0.5f, 0.0f,  // top left  ment this call to draw in wireframe polygons.
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // Render loop
+    while (!glfwWindowShouldClose(window)) {
+        frame = frame % 500 + 1;
+        current_time = glfwGetTime();
+        elapsed = current_time - last_time;
+        last_time = current_time;
 
-    double dt = 1.0 / 300;
-    int i = 0;
+        avg_fps = ((avg_fps * (frame - 1)) + (1 / elapsed)) / frame;
+        avg_ms = ((avg_ms * (frame - 1)) + elapsed) / frame; 
 
-    // render loop
-    // -----------
-    while (!glfwWindowShouldClose(window))
-    {
-        i++;
-        
-        printf("[%d] P1(%f %f) P2(%f %f) P3(%f %f) P4(%f %f)\n", i,
-            punto1.x, punto1.y, punto2.x, punto2.y, punto3.x, punto3.y, punto4.x, punto4.y);
-
-        // set up vertex data (and buffer(s)) and configure vertex attributes
-        // ------------------------------------------------------------------
-        float vertices[] = {
-            punto1.x, punto1.y, 0.0f, // left top  
-            punto2.x, punto2.y, 0.0f, // right top
-            punto3.x, punto3.y,  0.0f, // left bottom
-            punto2.x, punto2.y, 0.0f, // right top
-            punto3.x, punto3.y,  0.0f, // left bottom
-            punto4.x, punto4.y, 0.0f // right bottom
-        };
-
-        unsigned int VBO, VAO;
-        // generate vertex array object names
-        glGenVertexArrays(1, &VAO);
-        // generate buffer object names
-        glGenBuffers(1, &VBO);
-        // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-        glBindVertexArray(VAO);
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-        glBindBuffer(GL_ARRAY_BUFFER, 0); 
-
-        // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-        // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-        glBindVertexArray(0); 
-
-        // input
-        // -----
+        if (elapsed < SECONDSPERFRAME) {
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds((int)((SECONDSPERFRAME - elapsed) * 1000)));
+        }
+      
         processInput(window);
 
-        // render
-        // ------
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glfwGetCursorPos(window, &xpos, &ypos);
+        glfwGetWindowSize(window, &width, &height);
+        xpos = map_in_range(xpos, 0, width, -300, 300);
+        ypos = map_in_range(ypos, 0, height, 300, -300);
 
-        // draw triangle
-        glUseProgram(shaderProgram);
-        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        // glBindVertexArray(0); // no need to unbind it every time 
- 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-        //sleep(1);
 
-        constrain(&punto1);
-        constrain(&punto2);
-        constrain(&punto3);
-        constrain(&punto4);
+        mouse_pos = Vec2d{ xpos, ypos };
+        mouse_vel = mouse_pos - old_mouse_pos; 
+        old_mouse_pos = mouse_pos;
 
-        physics_update(&punto1, dt);
-        physics_update(&punto2, dt);
-        physics_update(&punto3, dt);
-        physics_update(&punto4, dt);
+        for (i = 0; i < N_PHYSICS_UPDATE; i++)
+            timestep(points, n_points, N_CONSTRAIN_SOLVE, SECONDSPERFRAME / N_PHYSICS_UPDATE, mouse_pos, mouse_vel);
+
+        // Mapping PointMass positions
+        for (j = 0; j < n_points; j++) {
+            vertices[j * 3] = map_in_range(points[j]->get_pos_x(), -300, 300, -1, 1);
+            vertices[j * 3 + 1] = map_in_range(points[j]->get_pos_y(), 300, -300, 1, -1);
+        }
+
+        // Loading vertices into buffer
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+
+        drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
     }
 
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
-    //glDeleteVertexArrays(1, &VAO);
-    //glDeleteBuffers(1, &VBO);
-    glDeleteProgram(shaderProgram);
+    collectGarbage(VAO, VBO, shaderProgram);
 
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
-    glfwTerminate();
-    return 0;
-}
+    printf("%02d fps %.2f ms \r", (int)avg_fps, avg_ms * 1000);
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-}
-
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
-    glViewport(0, 0, width, height);
 }

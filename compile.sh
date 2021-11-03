@@ -1,1 +1,1 @@
-g++ main.cpp glad.c -o main.out -ldl -lglfw
+g++ main.cpp glad.c -o main -lglfw
