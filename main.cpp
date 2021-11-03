@@ -11,22 +11,6 @@ double map_in_range(double value, double from, double to, double mapFrom, double
     return  mapFrom + (mapTo - mapFrom) * (value - from) / (to - from);
 }
 
-// TODO:
-//  - texture the cloth
-//  - pin/unpin points
-//  - switch from wireframe to fill mode
-//  - lock framerate
-//  - add tearability (segment color based on its length)
-//  - drag points
-//  - add the z axis
-//  - collision with an object (circle or sphere)
-//  - shade the cloth
-//  - experiment with different types of links between points
-//  - add wind (using perlin noise)
-//  - glsl (difficile)
-
-//  - hair sim (requires 3d, link points between grid of points)
-
 const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
