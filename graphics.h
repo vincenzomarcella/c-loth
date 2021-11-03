@@ -40,6 +40,8 @@ GLFWwindow* createWindow(int width, int height) {
     }
     // Making the created window the current context
     glfwMakeContextCurrent(window);
+    // The number of screen updates to wait before swapping buffers
+    glfwSwapInterval(1);
     // Binding a callback to allow resizing
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
