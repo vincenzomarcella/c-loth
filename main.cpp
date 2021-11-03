@@ -125,13 +125,14 @@ int main() {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds((int)((SECONDSPERFRAME - elapsed) * 1000)));
         }
-
+      
         processInput(window);
 
         glfwGetCursorPos(window, &xpos, &ypos);
         glfwGetWindowSize(window, &width, &height);
         xpos = map_in_range(xpos, 0, width, -300, 300);
         ypos = map_in_range(ypos, 0, height, 300, -300);
+
 
         mouse_pos = Vec2d{ xpos, ypos };
         mouse_vel = mouse_pos - old_mouse_pos; 
