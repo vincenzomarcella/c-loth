@@ -24,14 +24,14 @@ To compile the project just run the `compile.sh` script
 
 ## TODO
 - [x] Lock framerate
-- [] Pin/unpin points
-- [] Drag points
-- [] Texture the cloth (texture each individual triangles/texture the whole cloth polygon)
-- [] Add tearability (segment color based on its length)
-- [] Add the z axis
-- [] Collision with an object (circle or sphere)
-- [] Shade the cloth (requires 3d?)
-- [] Add wind (using perlin noise, requires 3d)
-- [] Threads to parallelize physics
-- [] "Compute shaders" with glsl (possible??)
-- [] Hair sim (requires 3d, link points between grid of points?)
+- [ ] Pin/unpin points
+- [ ] Drag points
+- [ ] Texture the cloth (texture each individual triangles/texture the whole cloth polygon)
+- [ ] Add tearability (segment color based on its length)
+- [ ] Add the z axis
+- [ ] Collision with an object (circle or sphere)
+- [ ] Shade the cloth (requires 3d?)
+- [ ] Add wind (using perlin noise, requires 3d)
+- [ ] Threads to parallelize physics
+- [ ] "Compute shaders" with glsl (possible??)
+- [ ] Hair sim (requires 3d, link points between grid of points?)
