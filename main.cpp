@@ -16,19 +16,22 @@ double map_in_range(double value, double from, double to, double mapFrom, double
 //  - pin/unpin points
 //  - switch from wireframe to fill mode
 //  - lock framerate
-//  - add tearability
+//  - add tearability (segment color based on its length)
 //  - drag points
 //  - add the z axis
 //  - collision with an object (circle or sphere)
 //  - shade the cloth
 //  - experiment with different types of links between points
 //  - add wind (using perlin noise)
+//  - glsl (difficile)
+
+//  - hair sim (requires 3d, link points between grid of points)
 
 const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
 const int N_PHYSICS_UPDATE = 3;
-const int N_CONSTRAIN_SOLVE = 8;
+const int N_CONSTRAIN_SOLVE = 10;
 
 const int WIDTH = 50;
 const int HEIGHT = 30;
@@ -125,14 +128,13 @@ int main() {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds((int)((SECONDSPERFRAME - elapsed) * 1000)));
         }
-      
+
         processInput(window);
 
         glfwGetCursorPos(window, &xpos, &ypos);
         glfwGetWindowSize(window, &width, &height);
         xpos = map_in_range(xpos, 0, width, -300, 300);
         ypos = map_in_range(ypos, 0, height, 300, -300);
-
 
         mouse_pos = Vec2d{ xpos, ypos };
         mouse_vel = mouse_pos - old_mouse_pos; 
