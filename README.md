@@ -1,0 +1,23 @@
+# README
+## GETTING STARTED(Debian/Ubuntu)
+Follow this section to get started working with this project.
+
+Run the following commands to install the dependencies:
+```sudo apt-get update
+sudo apt-get install cmake pkg-config
+sudo apt-get install mesa-utils libglu1-mesa-dev freeglut3-dev mesa-common-dev
+sudo apt-get install libglew-dev libglfw3-dev libglm-dev
+sudo apt-get install libao-dev libmpg123-dev
+```
+
+Set up and install the GLAD library:
+- go to http://glad.dav1d.de/,
+- set the language to C/C++ and choose the specification as OpenGL,
+- in the API section set the GL version to at least 3.3,
+- set the profile to core,
+- tick the *generate a loader* function,
+- click generate and download the zipped file,
+- (optional)go into src and copy the `glad.c` file in the root of this project,
+- copy the folder `inside` include into `/usr/include`,
+
+To compile the project just run the `compile.sh` script
