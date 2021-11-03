@@ -1,1 +1,0 @@
-g++ main.cpp glad.c -o main -lglfw3 -lgdi32 -lopengl32
