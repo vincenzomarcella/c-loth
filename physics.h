@@ -2,6 +2,8 @@
 #include <cmath>
 #include <random>
 
+// #include <GLFW/glfw3.h>
+
 double min(double a, double b) {
     if (a < b)
         return a;
@@ -91,6 +93,11 @@ struct PointMass {
 
     void fix_position() {
         fixed = true;
+        fixed_pos = Vec2d{ pos };
+    }
+
+    void unfix_position() {
+        fixed = false;
     }
 
     void add_neighbor(PointMass* neighbor_ptr) {
@@ -120,8 +127,10 @@ struct PointMass {
                     d = 0.001;
                 difference = (min(d, RESTING_DISTANCE) - d) / d;
                 translate = diff * 0.5 * STIFFNESS * difference;
-                pos += translate;
-                neighbors[i]->pos -= translate;
+                if (!fixed)
+                    pos += translate;
+                if (!(neighbors[i]->fixed))
+                    neighbors[i]->pos -= translate;
             }
         }
     }
@@ -158,7 +167,8 @@ void timestep(PointMass** points, int n_points, int iterations, double dt, Vec2d
 
     for (j = 0; j < n_points; j++) {
         points[j]->apply_force(GRAVITY);
-        if ((points[j]->get_pos() - mouse_pos).magnitude(true) < 200)
+        double distance_to_mouse_squared = (points[j]->get_pos() - mouse_pos).magnitude(true);
+        if (distance_to_mouse_squared < 200)
             points[j]->apply_force(mouse_vel * 60);
         points[j]->update(dt);
     }
