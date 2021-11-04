@@ -172,11 +172,11 @@ void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int
     // Binding the VAO
     glBindVertexArray(VAO);
     // Drawing the triangles
-    glUniform4f(vertexColorLocation, 0.0f, 1.0f, 0.0f, 1.0f);
+    glUniform4f(vertexColorLocation, 1.0f, 0.5f, 0.2f, 1.0f);
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
     //glLineWidth(2);
     // Drawing the points
-    glUniform4f(vertexColorLocation, 1.0f, 0.0f, 0.0f, 1.0f);
+    glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
     glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
     glPointSize(4);
 
