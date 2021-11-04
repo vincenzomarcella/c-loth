@@ -7,12 +7,21 @@ const char* vertexShaderSource = ""
     "void main() {\n"
     "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
     "}\0";
-
+/*
 const char* fragmentShaderSource = ""
     "#version 330 core\n"
     "out vec4 FragColor;\n"
     "void main() {\n"
     "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+    "}\0";
+*/
+
+const char* fragmentShaderSource = ""
+    "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "uniform vec4 ourColor;\n"
+    "void main() {\n"
+    "   FragColor = ourColor;\n"
     "}\0";
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
@@ -152,15 +161,24 @@ unsigned int getEBO() {
 
 void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int VAO) {
     // Clearing the screen
+    // glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+    int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+    float timeValue = glfwGetTime();
 
     // Activating shader program
     glUseProgram(shaderProgram);
     // Binding the VAO
     glBindVertexArray(VAO);
-    // Drawing the triangle
+    // Drawing the triangles
+    glUniform4f(vertexColorLocation, 0.0f, 1.0f, 0.0f, 1.0f);
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
+    //glLineWidth(2);
+    // Drawing the points
+    glUniform4f(vertexColorLocation, 1.0f, 0.0f, 0.0f, 1.0f);
+    glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
+    glPointSize(4);
 
     // Swap buffers 
     glfwSwapBuffers(window);
