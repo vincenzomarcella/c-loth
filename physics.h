@@ -1,63 +1,6 @@
 #include <cstdio>
-#include <cmath>
-#include <random>
 
-// #include <GLFW/glfw3.h>
-
-double min(double a, double b) {
-    if (a < b)
-        return a;
-    return b;
-}
-
-struct Vec2d {
-    // Constructors
-    Vec2d(double x, double y) : x{ x }, y{ y } {}
-    Vec2d(Vec2d* vec) : x{ vec->x }, y{ vec->y } {}
-    Vec2d() : x{ 0.0 }, y{ 0.0 } {}
-
-    // Overloading operators
-    Vec2d operator+(Vec2d vec) {
-        return Vec2d{ x + vec.x, y + vec.y };
-    }
-    Vec2d operator-(Vec2d vec) {
-        return Vec2d{ x - vec.x, y - vec.y };
-    }
-    Vec2d operator*(double c) {
-        return Vec2d{ x * c, y * c };
-    }
-    Vec2d operator/(double c) {
-        return Vec2d{ x / c, y / c };
-    }
-    void operator+=(Vec2d vec) {
-        x += vec.x;
-        y += vec.y;
-    }
-    void operator-=(Vec2d vec) {
-        x -= vec.x;
-        y -= vec.y;
-    }
-
-    double get_x() {
-        return x;
-    }
-
-    double get_y() {
-        return y;
-    }
-
-    double magnitude(bool squared=false) {
-        // Returns the magnitude of the vector
-        double magnitude_squared = x * x + y * y;
-        if (!squared)
-            return sqrt(magnitude_squared);
-        return magnitude_squared;
-    }
-
-    private:
-        double x;
-        double y;
-};
+#include "utils.h"
 
 const Vec2d GRAVITY{ 0, -25 };
 
@@ -68,8 +11,8 @@ struct PointMass {
     
     PointMass(double x, double y, bool fixed, int n_neighbors=1)
         : pos{ Vec2d{ x, y } }, fixed{ fixed }, n_neighbors{ n_neighbors } {
-        old_pos = Vec2d{ &pos };
-        fixed_pos = Vec2d{ &pos };
+        old_pos = pos;
+        fixed_pos = pos;
         // Storing pointer to dynamic array
         neighbors = new PointMass*[n_neighbors]{};
     }
@@ -93,7 +36,7 @@ struct PointMass {
 
     void fix_position() {
         fixed = true;
-        fixed_pos = Vec2d{ pos };
+        fixed_pos = pos;
     }
 
     void unfix_position() {
@@ -114,6 +57,12 @@ struct PointMass {
 
     void apply_force(Vec2d force) {
         acc += force;
+    }
+
+    void drag_to(Vec2d pos) {
+        this->pos = pos;
+        old_pos = pos;
+        fixed_pos = pos;
     }
 
     void constrain() {
@@ -158,18 +107,41 @@ struct PointMass {
         int n_neighbors;
 };
 
-void timestep(PointMass** points, int n_points, int iterations, double dt, Vec2d mouse_pos, Vec2d mouse_vel) {
+void timestep(PointMass** points, int n_points, int iterations, double dt, Mouse* mouse) {
+    Vec2d mouse_pos = mouse->get_pos();
+    Vec2d mouse_vel = mouse->get_vel();
+    static PointMass* dragged_point = nullptr;
+
     int i, j;
     for (i = 0; i < iterations; i++) {
         for (j = 0; j < n_points; j++)
             points[j]->constrain();
     }
 
+    double min_distance = INFINITY;
+    PointMass* closest_point = nullptr;
     for (j = 0; j < n_points; j++) {
         points[j]->apply_force(GRAVITY);
         double distance_to_mouse_squared = (points[j]->get_pos() - mouse_pos).magnitude(true);
-        if (distance_to_mouse_squared < 200)
-            points[j]->apply_force(mouse_vel * 60);
+        if (distance_to_mouse_squared < 200 && !dragged_point)
+            points[j]->apply_force(mouse->get_vel() * 50);
+        if (distance_to_mouse_squared < 100 && distance_to_mouse_squared < min_distance) {
+            min_distance = distance_to_mouse_squared;
+            closest_point = points[j];
+        }
         points[j]->update(dt);
     }
+
+    if (mouse->get_left_button()) {
+        if (dragged_point) {
+            dragged_point->fix_position();
+            dragged_point->drag_to(mouse_pos);
+        } else
+            dragged_point = closest_point;
+    } else if (mouse->get_right_button()) {
+        if (closest_point)
+            closest_point->unfix_position();
+    } else
+        dragged_point = nullptr;
+
 }

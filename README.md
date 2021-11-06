@@ -24,8 +24,8 @@ To compile the project just run the `compile.sh` script
 
 ## TODO
 - [x] Lock framerate
-- [ ] Pin/unpin points
-- [ ] Drag points
+- [x] Pin/unpin points
+- [x] Drag points
 - [ ] Texture the cloth (texture each individual triangles/texture the whole cloth polygon)
 - [ ] Add tearability (segment color based on its length)
 - [ ] Add the z axis
