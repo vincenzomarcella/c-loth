@@ -22,33 +22,33 @@ int to1d_index(int i, int j, int width) {
     return i * width + j;
 }
 
-
 // A class to handle mouse inputs
 struct Mouse {
     double window_x;
     double window_y;
-
+    // Returns the mouse pos mapped to simulation space
     Vec2d get_pos() {
         return pos;
     }
-
+    // Returns the mouse velocity
     Vec2d get_vel() {
         return vel;
     }
-
+    // Adjust mouse mapping variables to window size
     void set_to_window_size(int width, int height) {
         window_width = width;
         window_height = height;
     }
-
+    // Returns wether the left button is being pressed
     bool get_left_button() {
         return left_button;
     }
-
+    // Returns wether the right button is being pressed
     bool get_right_button() {
         return right_button;
     }
-
+    // Gets current mouse position relative to window, updates button states,
+    // maps mouse position to given coordinates ranges and updates mouse velocity
     void update(GLFWwindow* window, int xmin, int xmax, int ymin, int ymax) {
         glfwGetCursorPos(window, &window_x, &window_y);
 
@@ -74,6 +74,7 @@ struct Mouse {
         bool left_button = false;
         bool right_button = false;
 
+        // Returns wether a button is being pressed given its GLFW code
         bool get_button_state(GLFWwindow* window, int button_code) {
             switch (glfwGetMouseButton(window, button_code)) {
                 case GLFW_PRESS:

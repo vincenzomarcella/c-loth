@@ -21,28 +21,28 @@ struct PointMass {
         // Deallocates dynamic array
         delete[] neighbors;
     }
-
+    // Returns point pos
     Vec2d get_pos() {
         return pos;
     }
-
+    // Returns the x position coordinate casted to float
     float get_pos_x() {
         return (float)pos.get_x();
     }
-
+    // Returns the y position coordinate casted to float
     float get_pos_y() {
         return (float)pos.get_y();
     }
-
+    // Fix the point on its current position
     void fix_position() {
         fixed = true;
         fixed_pos = pos;
     }
-
+    // Unfix the point
     void unfix_position() {
         fixed = false;
     }
-
+    // Links the point to another point
     void add_neighbor(PointMass* neighbor_ptr) {
         // Looping inside neighbors array, placing given neighbor_ptr
         // at the first index where a nullptr is found
@@ -54,17 +54,17 @@ struct PointMass {
         }
         printf("Maximum number of neighbors reached!\n");
     }
-
+    // Adds a given vector to the acceleration
     void apply_force(Vec2d force) {
         acc += force;
     }
-
+    // Moves the point to the given pos
     void drag_to(Vec2d pos) {
         this->pos = pos;
         old_pos = pos;
         fixed_pos = pos;
     }
-
+    // Handles constrain solving for each neighbor
     void constrain() {
         static Vec2d diff, translate;
         static double d, difference;
@@ -73,7 +73,7 @@ struct PointMass {
                 diff = pos - neighbors[i]->pos;
                 d = diff.magnitude();
                 if (d <= 0)
-                    d = 0.001;
+                    d = 0.00001;
                 difference = (min(d, RESTING_DISTANCE) - d) / d;
                 translate = diff * 0.5 * STIFFNESS * difference;
                 if (!fixed)
@@ -83,7 +83,7 @@ struct PointMass {
             }
         }
     }
-
+    // Updates the point position using verlet integration
     void update(double dt) {
         if (fixed) {
             pos = fixed_pos;
