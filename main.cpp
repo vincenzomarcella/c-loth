@@ -2,8 +2,6 @@
 
 #include "physics.h"
 
-// #include <GLFW/glfw3.h>
-
 const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
@@ -110,7 +108,6 @@ int main() {
     if (!window || !loadGlad())
         return -1;
 
-    // glfwSetMouseButtonCallback(window, mouseClickCallback);
     // Binding a callback to allow resizing
     glfwSetFramebufferSizeCallback(window, windowResizeCallback);
 
