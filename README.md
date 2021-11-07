@@ -17,8 +17,8 @@ Set up and install the GLAD library:
 - set the profile to core,
 - tick the *generate a loader* function,
 - click generate and download the zipped file,
-- (optional)go into src and copy the `glad.c` file in the root of this project,
-- copy the folder `inside` include into `/usr/include`,
+- (optional)go into `src` and copy the `glad.c` file in the root of this project,
+- copy the folders inside `include` into `/usr/include`,
 
 To compile the project just run the `compile.sh` script
 
