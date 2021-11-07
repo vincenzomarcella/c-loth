@@ -17,15 +17,15 @@ Set up and install the GLAD library:
 - set the profile to core,
 - tick the *generate a loader* function,
 - click generate and download the zipped file,
-- (optional)go into src and copy the `glad.c` file in the root of this project,
-- copy the folder `inside` include into `/usr/include`,
+- (optional)go into `src` and copy the `glad.c` file in the root of this project,
+- copy the folders inside `include` into `/usr/include`,
 
 To compile the project just run the `compile.sh` script
 
 ## TODO
 - [x] Lock framerate
-- [ ] Pin/unpin points
-- [ ] Drag points
+- [x] Pin/unpin points
+- [x] Drag points
 - [ ] Texture the cloth (texture each individual triangles/texture the whole cloth polygon)
 - [ ] Add tearability (segment color based on its length)
 - [ ] Add the z axis
