@@ -32,6 +32,42 @@ void processInput(GLFWwindow* window) {
         glfwSetWindowShouldClose(window, true);
 }
 
+double rotateX_x(double x, double y, double z, double angle) {
+    return x;
+}
+
+double rotateX_y(double x, double y, double z, double angle) {
+    return cos(angle) * y - sin(angle) * z;
+}
+
+double rotateX_z(double x, double y, double z, double angle) {
+    return sin(angle) * y + cos(angle) * z;
+}
+
+double rotateY_x(double x, double y, double z, double angle) {
+    return cos(angle) * x + sin(angle) * z;
+}
+
+double rotateY_y(double x, double y, double z, double angle) {
+    return y;
+}
+
+double rotateY_z(double x, double y, double z, double angle) {
+    return -sin(angle) * x + cos(angle) * z;
+}
+
+double rotateZ_x(double x, double y, double z, double angle) {
+    return cos(angle) * x - sin(angle) * y;
+}
+
+double rotateZ_y(double x, double y, double z, double angle) {
+    return sin(angle) * x + cos(angle) * y;
+}
+
+double rotateZ_z(double x, double y, double z, double angle) {
+    return z;
+}
+
 int main() {
     PointMass* points[COLS * ROWS]{};
 
@@ -40,7 +76,8 @@ int main() {
         for (j = 0; j < COLS; j++) {
             PointMass* pm = new PointMass{
                 j * 10.0 - 250,
-                i * -10.0 + 250,
+                i * -10.0 + 150,
+                0,
                 false,
                 1 + 1 * (int)(i > 0 && j > 0)
             };
@@ -55,10 +92,14 @@ int main() {
         }   
 
     // Fixing corners
-    points[0]->fix_position();
-    points[COLS - 1]->fix_position();
-    points[COLS * (ROWS - 1)]->fix_position();
-    points[COLS * ROWS - 1]->fix_position();
+    // points[0]->fix_position();
+    // points[COLS - 1]->fix_position();
+    // points[COLS * (ROWS - 1)]->fix_position();
+    // points[COLS * ROWS - 1]->fix_position();
+
+    // Fixing yop row
+    for (j = 0; j < COLS; j++)
+        points[j]->fix_position();
 
     int n_points = sizeof(points) / sizeof(PointMass*);
 
@@ -153,11 +194,36 @@ int main() {
                 &mouse
             );
 
+        double angle = map(frame, 0, 500, 0, 2 * M_PI);
+        // double angle = M_PI / 2.2;
+
+        double aspect = 2;
+        double fovy = 0.006;
+        double f = 1 / tan(0.5 * fovy);
+        double far = 200;
+        double near = -300;
+
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
-            vertices[j * 3    ] = map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
-            vertices[j * 3 + 1] = map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
-            // vertices[j * 3 + 2] = z coordinate
+            double x = points[j]->get_pos_x();
+            double y = points[j]->get_pos_y();
+            double z = points[j]->get_pos_z();
+
+            // x = rotateY_x(x, y, z, angle);
+            // y = rotateY_y(x, y, z, angle);
+            // z = rotateY_z(x, y, z, angle);
+
+            double x1 = rotateY_x(x, y, z, angle);
+            double y1 = rotateY_y(x, y, z, angle);
+            double z1 = rotateY_z(x, y, z, angle);
+
+            x = x1 * (f / aspect);// rotateY_x(x, y, z, angle);
+            y = y1 * f;// rotateY_y(x, y, z, angle);
+            z = z1 * (far + near) / (near - far) + 2 * far * near / (near - far);// rotateY_z(x, y, z, angle);
+
+            vertices[j * 3    ] = map(x / z, XMIN, XMAX, -1, 1);
+            vertices[j * 3 + 1] = map(y / z, YMIN, YMAX, -1, 1);
+            vertices[j * 3 + 2] = map(z / z, YMIN, YMAX, -1, 1);
 
         }
 
