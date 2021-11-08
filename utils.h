@@ -27,11 +27,11 @@ struct Mouse {
     double window_x;
     double window_y;
     // Returns the mouse pos mapped to simulation space
-    Vec2d get_pos() {
+    Vec3d get_pos() {
         return pos;
     }
     // Returns the mouse velocity
-    Vec2d get_vel() {
+    Vec3d get_vel() {
         return vel;
     }
     // Adjust mouse mapping variables to window size
@@ -56,17 +56,18 @@ struct Mouse {
         right_button = get_button_state(window, GLFW_MOUSE_BUTTON_RIGHT);
 
         // Mapping window mouse pos to simulation coordinates 
-        pos = Vec2d{ map(window_x, 0, window_width, xmin, xmax),
-                     map(window_y, 0, window_height, ymax, ymin)}; // y axis is flipped
+        pos = Vec3d{ map(window_x, 0, window_width, xmin, xmax),
+                     map(window_y, 0, window_height, ymax, ymin), // y axis is flipped
+                     0.0 }; 
 
         vel = pos - old_pos;
         old_pos = pos;
     }
 
     private:
-        Vec2d old_pos{};
-        Vec2d pos{};
-        Vec2d vel{};
+        Vec3d old_pos{};
+        Vec3d pos{};
+        Vec3d vel{};
         int window_width;
         int window_height;
         int xmin, xmax;

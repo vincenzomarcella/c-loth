@@ -1,29 +1,31 @@
 #include <cmath>
 
-struct Vec2d {
-    Vec2d(double x, double y) : x{ x }, y{ y } {}
-    Vec2d(Vec2d* vec) : x{ vec->x }, y{ vec->y } {}
-    Vec2d() : x{ 0.0 }, y{ 0.0 } {}
+struct Vec3d {
+    Vec3d(double x, double y, double z) : x{ x }, y{ y }, z{ z } {}
+    Vec3d(Vec3d* vec) : x{ vec->x }, y{ vec->y }, z{ vec->z }  {}
+    Vec3d() : x{ 0.0 }, y{ 0.0 }, z{ 0.0 } {}
 
-    Vec2d operator+(Vec2d vec) {
-        return Vec2d{ x + vec.x, y + vec.y };
+    Vec3d operator+(Vec3d vec) {
+        return Vec3d{ x + vec.x, y + vec.y, z + vec.z };
     }
-    Vec2d operator-(Vec2d vec) {
-        return Vec2d{ x - vec.x, y - vec.y };
+    Vec3d operator-(Vec3d vec) {
+        return Vec3d{ x - vec.x, y - vec.y, z - vec.z };
     }
-    Vec2d operator*(double c) {
-        return Vec2d{ x * c, y * c };
+    Vec3d operator*(double c) {
+        return Vec3d{ x * c, y * c, z * c};
     }
-    Vec2d operator/(double c) {
-        return Vec2d{ x / c, y / c };
+    Vec3d operator/(double c) {
+        return Vec3d{ x / c, y / c, z / c};
     }
-    void operator+=(Vec2d vec) {
+    void operator+=(Vec3d vec) {
         x += vec.x;
         y += vec.y;
+        z += vec.z;
     }
-    void operator-=(Vec2d vec) {
+    void operator-=(Vec3d vec) {
         x -= vec.x;
         y -= vec.y;
+        z -= vec.z;
     }
 
     double get_x() {
@@ -34,8 +36,19 @@ struct Vec2d {
         return y;
     }
 
+    double get_z() {
+        return z;
+    }
+
+    // Returns the (squared or not) magnitude of the vector
     double magnitude(bool squared=false) {
-        // Returns the magnitude of the vector
+        double magnitude_squared = x * x + y * y + z * z;
+        if (!squared)
+            return sqrt(magnitude_squared);
+        return magnitude_squared;
+    }
+    // Returns the (squared or not) magnitude of the vector considering only xy axes
+    double magnitude2d(bool squared=false) {
         double magnitude_squared = x * x + y * y;
         if (!squared)
             return sqrt(magnitude_squared);
@@ -45,4 +58,5 @@ struct Vec2d {
     private:
         double x;
         double y;
+        double z;
 };
