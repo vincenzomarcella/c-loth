@@ -32,40 +32,24 @@ void processInput(GLFWwindow* window) {
         glfwSetWindowShouldClose(window, true);
 }
 
-double rotateX_x(double x, double y, double z, double angle) {
-    return x;
+
+Vec3d rotate_x(double x, double y, double z, double angle) {
+    return Vec3d{ x, cos(angle) * y - sin(angle) * z, sin(angle) * y + cos(angle) * z };
 }
 
-double rotateX_y(double x, double y, double z, double angle) {
-    return cos(angle) * y - sin(angle) * z;
+Vec3d rotate_y(double x, double y, double z, double angle) {
+    return Vec3d{ cos(angle) * x + sin(angle) * z, y, -sin(angle) * x + cos(angle) * z };
 }
 
-double rotateX_z(double x, double y, double z, double angle) {
-    return sin(angle) * y + cos(angle) * z;
+Vec3d rotate_z(double x, double y, double z, double angle) {
+    return Vec3d{ cos(angle) * x - sin(angle) * y, sin(angle) * x + cos(angle) * y, z };
 }
 
-double rotateY_x(double x, double y, double z, double angle) {
-    return cos(angle) * x + sin(angle) * z;
-}
-
-double rotateY_y(double x, double y, double z, double angle) {
-    return y;
-}
-
-double rotateY_z(double x, double y, double z, double angle) {
-    return -sin(angle) * x + cos(angle) * z;
-}
-
-double rotateZ_x(double x, double y, double z, double angle) {
-    return cos(angle) * x - sin(angle) * y;
-}
-
-double rotateZ_y(double x, double y, double z, double angle) {
-    return sin(angle) * x + cos(angle) * y;
-}
-
-double rotateZ_z(double x, double y, double z, double angle) {
-    return z;
+Vec3d perspective_projection(Vec3d point) {
+    double x = point.get_x();
+    double y = point.get_y();
+    double z = point.get_z() - 400;
+    return Vec3d{ x * 500 / -z, y * 500 / -z, -z};
 }
 
 int main() {
@@ -195,13 +179,6 @@ int main() {
             );
 
         double angle = map(frame, 0, 500, 0, 2 * M_PI);
-        // double angle = M_PI / 2.2;
-
-        double aspect = 2;
-        double fovy = 0.006;
-        double f = 1 / tan(0.5 * fovy);
-        double far = 200;
-        double near = -300;
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
@@ -209,21 +186,18 @@ int main() {
             double y = points[j]->get_pos_y();
             double z = points[j]->get_pos_z();
 
-            // x = rotateY_x(x, y, z, angle);
-            // y = rotateY_y(x, y, z, angle);
-            // z = rotateY_z(x, y, z, angle);
+            // Vec3d rotated = rotate_y(x, y, z, angle);
+            Vec3d rotated = Vec3d{x, y, z};
 
-            double x1 = rotateY_x(x, y, z, angle);
-            double y1 = rotateY_y(x, y, z, angle);
-            double z1 = rotateY_z(x, y, z, angle);
+            Vec3d projected = perspective_projection(rotated);
 
-            x = x1 * (f / aspect);// rotateY_x(x, y, z, angle);
-            y = y1 * f;// rotateY_y(x, y, z, angle);
-            z = z1 * (far + near) / (near - far) + 2 * far * near / (near - far);// rotateY_z(x, y, z, angle);
+            x = projected.get_x();
+            y = projected.get_y();
+            z = projected.get_z();
 
-            vertices[j * 3    ] = map(x / z, XMIN, XMAX, -1, 1);
-            vertices[j * 3 + 1] = map(y / z, YMIN, YMAX, -1, 1);
-            vertices[j * 3 + 2] = map(z / z, YMIN, YMAX, -1, 1);
+            vertices[j * 3    ] = map(x, XMIN, XMAX, -1, 1) / 2;
+            vertices[j * 3 + 1] = map(y, YMIN, YMAX, -1, 1);
+            vertices[j * 3 + 2] = map(z, -1000, 1000, -1, 1);
 
         }
 
