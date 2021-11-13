@@ -55,6 +55,10 @@ struct Vec3d {
         return magnitude_squared;
     }
 
+    void print() {
+        printf("(%f, %f, %f)\n", x, y, z);
+    }
+
     private:
         double x;
         double y;
