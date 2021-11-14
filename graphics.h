@@ -1,11 +1,21 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-const char* vertexShaderSource = ""
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+const char* vertexShaderSource = ""   
     "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
-    "void main() {\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+    "layout (location = 1) in vec3 aColor;\n"
+    "layout (location = 2) in vec2 aTexCoord;\n"
+    "out vec3 ourColor;\n"
+    "out vec2 TexCoord;\n"
+    "void main()\n"
+    "{\n"
+    "    gl_Position = vec4(aPos, 1.0);\n"
+    "    ourColor = aColor;\n"
+    "    TexCoord = aTexCoord;\n"
     "}\0";
 /*
 const char* fragmentShaderSource = ""
@@ -15,13 +25,25 @@ const char* fragmentShaderSource = ""
     "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
     "}\0";
 */
-
+/*
 const char* fragmentShaderSource = ""
     "#version 330 core\n"
     "out vec4 FragColor;\n"
     "uniform vec4 ourColor;\n"
     "void main() {\n"
     "   FragColor = ourColor;\n"
+    "}\0";
+*/
+
+const char* fragmentShaderSource = ""
+    "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "in vec3 ourColor;\n"
+    "in vec2 TexCoord;\n"
+    "uniform sampler2D ourTexture;\n"
+    "void main()\n"
+    "{\n"
+    "    FragColor = texture(ourTexture, TexCoord);\n"
     "}\0";
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
@@ -172,13 +194,13 @@ void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int
     // Binding the VAO
     glBindVertexArray(VAO);
     // Drawing the triangles
-    glUniform4f(vertexColorLocation, 1.0f, 0.5f, 0.2f, 1.0f);
+    //glUniform4f(vertexColorLocation, 1.0f, 0.5f, 0.2f, 1.0f);
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
     //glLineWidth(2);
     // Drawing the points
-    glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
-    glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
-    glPointSize(4);
+    //glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
+    //glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
+    //glPointSize(4);
 
     // Swap buffers 
     glfwSwapBuffers(window);

@@ -74,7 +74,22 @@ int main() {
             indices[6 * (i * (WIDTH - 1) + j) + 5] = (i + 1) * WIDTH + j + 1;
         }
 
-    GLFWwindow* window = createWindow(800, 800);
+    
+    // Array that containts the texture vertices data
+    float texVertices[7 * n_points]{};
+    for (i = 0; i < HEIGHT - 1; i++){
+        for(j = 0; j < WIDTH; j++){
+            texVertices[i * WIDTH + j] = map_in_range(points[i * WIDTH + j]->get_pos_x(), -300, 300, -1, 1);
+            texVertices[i * WIDTH + j + 1] = map_in_range(points[i * WIDTH + j]->get_pos_y(), -300, 300, -1, 1);
+            texVertices[i * WIDTH + j + 2] = 1.0f;
+            texVertices[i * WIDTH + j + 3] = 1.0f;
+            texVertices[i * WIDTH + j + 4] = 1.0f;
+            texVertices[i * WIDTH + j + 5] = map_in_range(j * 10.0 - 250, 300, -300, 1, -1);
+            texVertices[i * WIDTH + j + 5] = map_in_range(i * 10.0 + 250, 300, -300, 1, -1);;
+        }
+    }
+
+    GLFWwindow* window = createWindow(800, 600);
     if (!window || !loadGlad())
         return -1;
 
@@ -88,7 +103,37 @@ int main() {
 
     setVertexDataInterpretation();
     // Wireframe mode
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    // Configuring the way that textures are repeated even though it should not happen
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    // Configuring linear texture mipmapping
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    // Configuring bilinear texture filtering
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(2);  
+    // Loading the texture
+    int texture_width, texture_height, nrChannels;
+    unsigned char *data = stbi_load("jeans.jpeg", &texture_width, &texture_height, &nrChannels, 0);
+    if (data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        printf("Failed to load texture\n");
+    }
+    stbi_image_free(data);
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindVertexArray(VAO);
+    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
 
     int frame = 0;
     double current_time, elapsed, last_time = 0;
@@ -124,12 +169,12 @@ int main() {
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
-            vertices[j * 3] = map_in_range(points[j]->get_pos_x(), -300, 300, -1, 1);
-            vertices[j * 3 + 1] = map_in_range(points[j]->get_pos_y(), 300, -300, 1, -1);
+            texVertices[j * 3] = map_in_range(points[j]->get_pos_x(), -300, 300, -1, 1);
+            texVertices[j * 3 + 1] = map_in_range(points[j]->get_pos_y(), 300, -300, 1, -1);
         }
 
         // Loading vertices into buffer
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(texVertices), texVertices, GL_STATIC_DRAW);
 
         drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
     }
