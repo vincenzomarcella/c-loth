@@ -3,12 +3,13 @@
 #include "SimplexNoise.h"
 #include "utils.h"
 
-const Vec3d GRAVITY{ 0, -25, 0};
+const Vec3d GRAVITY{ 0, -10, 0 };
 
 struct PointMass {
     const float DAMPING = .03;
     const float RESTING_DISTANCE = 10;
     const float STIFFNESS = 0.8; // from 0 to 1
+    const double MASS = 2.5;
     
     PointMass(double x, double y, double z, bool fixed, int n_neighbors=1)
         : pos{ Vec3d{ x, y, z } }, fixed{ fixed }, n_neighbors{ n_neighbors } {
@@ -131,20 +132,19 @@ void timestep(PointMass** points, int n_points, int iterations, double dt, Mouse
     for (i = 0; i < 30; i++) {
         xoff = 0;
         for (int k = 0; k < 50; k++) {
-            // int y = j / 50;
-            // int x = j % 50;
+
             int j = k + i * 50;
-            points[j]->apply_force(GRAVITY);
-            // points[j]->apply_force(Vec3d{ 0, 0, SimplexNoise::noise(xoff, yoff, glfwGetTime() * 2) * 80 });
+            points[j]->apply_force(GRAVITY * points[j]->MASS);
             float strength = (SimplexNoise::noise(glfwGetTime()) + 1.0) / 2 * 80;
-            points[j]->apply_force(Vec3d{ 0, 0, SimplexNoise::noise(xoff, yoff, glfwGetTime()) * strength});
+            Vec3d wind = Vec3d{ 0, 0, SimplexNoise::noise(xoff, yoff, glfwGetTime()) * strength };
+            points[j]->apply_force(wind);
             double distance_to_mouse_squared = (points[j]->get_pos() - mouse_pos).magnitude2d(true);
             // if (distance_to_mouse_squared < 200 && !dragged_point)
             //     points[j]->apply_force(mouse->get_vel() * 50);
-            if (distance_to_mouse_squared < 100 && distance_to_mouse_squared < min_distance) {
-                min_distance = distance_to_mouse_squared;
-                closest_point = points[j];
-            }
+            // if (distance_to_mouse_squared < 100 && distance_to_mouse_squared < min_distance) {
+            //     min_distance = distance_to_mouse_squared;
+            //     closest_point = points[j];
+            // }
             points[j]->update(dt);
             xoff += 0.08;
         }
