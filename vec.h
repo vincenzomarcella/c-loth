@@ -11,7 +11,7 @@ struct Vec3d {
     Vec3d operator-(Vec3d vec) {
         return Vec3d{ x - vec.x, y - vec.y, z - vec.z };
     }
-    Vec3d operator*(double c) {
+    Vec3d operator*(double c) const {
         return Vec3d{ x * c, y * c, z * c};
     }
     Vec3d operator/(double c) {
