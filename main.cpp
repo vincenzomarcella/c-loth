@@ -13,14 +13,13 @@ const int N_CONSTRAIN_SOLVE = 10;
 
 const int ROWS = 30; // Number of cloth rows
 const int COLS = 50; // Number of points for each cloth row
-const int WIDTH = 600; // To define a [-WIDTH/2, WIDTH/2] constrained x axis for the simulation
-const int HEIGHT = 600; // To define a [-HEIGHT/2, HEIGHT/2] constrained y axis for the simulation
-const int XMIN = -WIDTH / 2; 
-const int XMAX = WIDTH / 2;
-const int YMIN = -HEIGHT / 2; 
-const int YMAX = HEIGHT / 2;
+// Simulation space constrains
+const int XMAX = 1000; 
+const int YMAX = 1000;
+const int ZMAX = 1000;
 
 static Mouse mouse;
+static Camera camera{ 0.0, 0.0, 1000.0 };
 
 void windowResizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -31,7 +30,6 @@ void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 }
-
 
 Vec3d rotate_x(double x, double y, double z, double angle) {
     return Vec3d{ x, cos(angle) * y - sin(angle) * z, sin(angle) * y + cos(angle) * z };
@@ -45,13 +43,6 @@ Vec3d rotate_z(double x, double y, double z, double angle) {
     return Vec3d{ cos(angle) * x - sin(angle) * y, sin(angle) * x + cos(angle) * y, z };
 }
 
-Vec3d perspective_projection(Vec3d point) {
-    double x = point.get_x();
-    double y = point.get_y();
-    double z = point.get_z() - 400;
-    return Vec3d{ x * 500 / -z, y * 500 / -z, -z};
-}
-
 int main() {
     PointMass* points[COLS * ROWS]{};
 
@@ -59,9 +50,9 @@ int main() {
     for (i = 0; i < ROWS; i++)
         for (j = 0; j < COLS; j++) {
             PointMass* pm = new PointMass{
-                j * 10.0 - 250,
-                i * -10.0 + 150,
-                0,
+                j * 10.0 - 100,
+                i * -10.0 + 400,
+                200,
                 false,
                 1 + 1 * (int)(i > 0 && j > 0)
             };
@@ -167,7 +158,8 @@ int main() {
         processInput(window);
 
         // Handling mouse
-        mouse.update(window, XMIN, XMAX, YMIN, YMAX);
+        mouse.update(window, 0, XMAX, 0, YMAX);
+        camera.update(window);
         
         for (i = 0; i < N_PHYSICS_UPDATE; i++)
             timestep(
@@ -188,16 +180,13 @@ int main() {
 
             // Vec3d rotated = rotate_y(x, y, z, angle);
             Vec3d rotated = Vec3d{x, y, z};
+            Vec3d projected = camera.perspective_projection(rotated);
 
-            Vec3d projected = perspective_projection(rotated);
+            vertices[j * 3    ] = projected.get_x();
+            vertices[j * 3 + 1] = projected.get_y();
+            vertices[j * 3 + 2] = projected.get_z();
 
-            x = projected.get_x();
-            y = projected.get_y();
-            z = projected.get_z();
-
-            vertices[j * 3    ] = map(x, XMIN, XMAX, -1, 1) / 2;
-            vertices[j * 3 + 1] = map(y, YMIN, YMAX, -1, 1);
-            vertices[j * 3 + 2] = map(z, -1000, 1000, -1, 1);
+            // projected.print();
 
         }
 
