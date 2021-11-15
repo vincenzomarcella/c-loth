@@ -46,15 +46,6 @@ const char* fragmentShaderSource = ""
     "    FragColor = texture(ourTexture, TexCoord);\n"
     "}\0";
 
-void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
-}
-
-void processInput(GLFWwindow* window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-}
-
 GLFWwindow* createWindow(int width, int height) {
     glfwInit();
     glfwWindowHint(GLFW_SAMPLES, 4);
@@ -74,9 +65,7 @@ GLFWwindow* createWindow(int width, int height) {
     glfwMakeContextCurrent(window);
     // The number of screen updates to wait before swapping buffers
     glfwSwapInterval(1);
-    // Binding a callback to allow resizing
-    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-
+    
     return window;
 }
 
@@ -196,11 +185,11 @@ void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int
     // Drawing the triangles
     //glUniform4f(vertexColorLocation, 1.0f, 0.5f, 0.2f, 1.0f);
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
-    //glLineWidth(2);
+    glLineWidth(2);
     // Drawing the points
-    //glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
-    //glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
-    //glPointSize(4);
+    glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
+    glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
+    glPointSize(2);
 
     // Swap buffers 
     glfwSwapBuffers(window);
