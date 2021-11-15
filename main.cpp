@@ -60,32 +60,64 @@ int main() {
 
     int n_points = sizeof(points) / sizeof(PointMass*);
 
-    float vertices[3 * n_points]{};
-    unsigned int indices[(WIDTH - 1) * (HEIGHT - 1) * 2 * 3]{};
-    
-    for (i = 0; i < HEIGHT - 1; i++)
-        for (j = 0; j < WIDTH - 1; j++) {
-            indices[6 * (i * (WIDTH - 1) + j)    ] = i * WIDTH + j;
-            indices[6 * (i * (WIDTH - 1) + j) + 1] = i * WIDTH + j + 1;
-            indices[6 * (i * (WIDTH - 1) + j) + 2] = (i + 1) * WIDTH + j;
+    const int clothsize = WIDTH * HEIGHT;
 
-            indices[6 * (i * (WIDTH - 1) + j) + 3] = i * WIDTH + j + 1;
-            indices[6 * (i * (WIDTH - 1) + j) + 4] = (i + 1) * WIDTH + j;
-            indices[6 * (i * (WIDTH - 1) + j) + 5] = (i + 1) * WIDTH + j + 1;
-        }
-
+    float vertices[3 * clothsize]{};
     
     // Array that containts the texture vertices data
-    float texVertices[7 * n_points]{};
-    for (i = 0; i < HEIGHT - 1; i++){
+    float texVertices[7 * clothsize]{};
+    for (i = 0; i < HEIGHT; i++){
         for(j = 0; j < WIDTH; j++){
-            texVertices[i * WIDTH + j] = map_in_range(points[i * WIDTH + j]->get_pos_x(), -300, 300, -1, 1);
-            texVertices[i * WIDTH + j + 1] = map_in_range(points[i * WIDTH + j]->get_pos_y(), -300, 300, -1, 1);
-            texVertices[i * WIDTH + j + 2] = 1.0f;
-            texVertices[i * WIDTH + j + 3] = 1.0f;
-            texVertices[i * WIDTH + j + 4] = 1.0f;
-            texVertices[i * WIDTH + j + 5] = map_in_range(j * 10.0 - 250, 300, -300, 1, -1);
-            texVertices[i * WIDTH + j + 5] = map_in_range(i * 10.0 + 250, 300, -300, 1, -1);;
+            texVertices[i * (WIDTH * 7) + (j * 7)] = map_in_range(points[i * WIDTH + j]->get_pos_x(), -300, 300, -1, 1);
+            texVertices[i * (WIDTH * 7) + (j * 7) + 1] = map_in_range(points[i * WIDTH + j]->get_pos_y(), -300, 300, -1, 1);
+            /*printf(
+                "Coords for point x: %d, y: %d, x: %f, y:%f\n", 
+                i, 
+                j,
+                texVertices[i * WIDTH + j],
+                texVertices[i * WIDTH + j + 1]);*/
+            texVertices[i * (WIDTH * 7) + (j * 7) + 2] = 1.0f;
+            texVertices[i * (WIDTH * 7) + (j * 7) + 3] = 1.0f;
+            texVertices[i * (WIDTH * 7) + (j * 7) + 4] = 1.0f;
+            texVertices[i * (WIDTH * 7) + (j * 7) + 5] = map_in_range(points[i * WIDTH + j]->get_pos_x(), -300, 300, -1, 1);
+            texVertices[i * (WIDTH * 7) + (j * 7) + 6] = map_in_range(points[i * WIDTH + j]->get_pos_y(), -300, 300, -1, 1);
+            /*printf("Vertexes generated:\nindexes: %d %d x:%f y:%f,\nr:%f g:%f b:%f,\nx:%f y:%f\n",
+            i * WIDTH + (j * 7),
+            i * WIDTH + (j * 7) + 1,
+            texVertices[i * (WIDTH * 7) + (j * 7)    ],
+            texVertices[i * (WIDTH * 7) + (j * 7) + 1],
+            texVertices[i * (WIDTH * 7) + (j * 7) + 2],
+            texVertices[i * (WIDTH * 7) + (j * 7) + 3],
+            texVertices[i * (WIDTH * 7) + (j * 7) + 4],
+            texVertices[i * (WIDTH * 7) + (j * 7) + 5],
+            texVertices[i * (WIDTH * 7) + (j * 7) + 6]);*/
+        }
+    }
+
+    unsigned int indices[clothsize * 2 * 3]{};
+    // TODO: Rework the function that generates the indices.
+    for (i = 0; i < HEIGHT - 1; i++) {
+        for (j = 0; j < WIDTH - 1; j++) {
+            indices[6 * (i * (WIDTH - 1) + j)    ] = i * (WIDTH * 7) + (j * 7);
+            indices[6 * (i * (WIDTH - 1) + j) + 1] = i * (WIDTH * 7) + (j * 7) + 1;
+            indices[6 * (i * (WIDTH - 1) + j) + 2] = (i + 1) * (WIDTH * 7) + (j * 7);
+
+            indices[6 * (i * (WIDTH - 1) + j) + 3] = i * (WIDTH * 7) + (j * 7) + 1;
+            indices[6 * (i * (WIDTH - 1) + j) + 4] = (i + 1) * (WIDTH * 7) + (j * 7);
+            indices[6 * (i * (WIDTH - 1) + j) + 5] = (i + 1) * (WIDTH * 7) + (j * 7) + 1;
+            printf("Objects generated:\nindexes: %d %d x:%f y:%f,\nindexes: %d %d x:%f y:%f,\nindexes: %d %d x:%f y:%f\n",
+            indices[6 * (i * (WIDTH - 1) + j)    ],
+            indices[6 * (i * (WIDTH - 1) + j) + 1],
+            texVertices[indices[6 * (i * (WIDTH - 1) + j)    ]],
+            texVertices[indices[6 * (i * (WIDTH - 1) + j) + 1]],
+            indices[6 * (i * (WIDTH - 1) + j) + 2],
+            indices[6 * (i * (WIDTH - 1) + j) + 3],
+            texVertices[indices[6 * (i * (WIDTH - 1) + j) + 2]],
+            texVertices[indices[6 * (i * (WIDTH - 1) + j) + 3]],
+            indices[6 * (i * (WIDTH - 1) + j) + 4],
+            indices[6 * (i * (WIDTH - 1) + j) + 5],
+            texVertices[indices[6 * (i * (WIDTH - 1) + j) + 4]],
+            texVertices[indices[6 * (i * (WIDTH - 1) + j) + 5]]);
         }
     }
 
@@ -99,11 +131,13 @@ int main() {
     unsigned int VBO = getVBO();
     unsigned int EBO = getEBO();
 
+    // Load the vertex data inside the vertex buffer object
+    // Load the vertex indices inside of the element buffer object
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 
     setVertexDataInterpretation();
     // Wireframe mode
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     unsigned int texture;
     glGenTextures(1, &texture);
@@ -115,9 +149,19 @@ int main() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     // Configuring bilinear texture filtering
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(2 * sizeof(float)));
+    
+    // Configuring the vertex array striding
+    // The first two values are the vertex location
+    glEnableVertexAttribArray(0); 
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
+                       7*sizeof(float), 0);
+    // The next three attributes are the color
+    glEnableVertexAttribArray(1); 
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+                       7*sizeof(float), (void*)(2*sizeof(float)));
     glEnableVertexAttribArray(2);  
+    // The last two attributes are the texture coordinates
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
     // Loading the texture
     int texture_width, texture_height, nrChannels;
     unsigned char *data = stbi_load("jeans.jpeg", &texture_width, &texture_height, &nrChannels, 0);
@@ -169,14 +213,15 @@ int main() {
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
-            texVertices[j * 3] = map_in_range(points[j]->get_pos_x(), -300, 300, -1, 1);
-            texVertices[j * 3 + 1] = map_in_range(points[j]->get_pos_y(), 300, -300, 1, -1);
+            texVertices[j * 7] = map_in_range(points[j]->get_pos_x(), -300, 300, -1, 1);
+            texVertices[j * 7 + 1] = map_in_range(points[j]->get_pos_y(), 300, -300, 1, -1);
         }
 
         // Loading vertices into buffer
-        glBufferData(GL_ARRAY_BUFFER, sizeof(texVertices), texVertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(texVertices), texVertices, GL_DYNAMIC_DRAW);
 
         drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
+        //getchar();
     }
 
     collectGarbage(VAO, VBO, shaderProgram);
