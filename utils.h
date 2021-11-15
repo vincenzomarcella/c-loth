@@ -86,3 +86,49 @@ struct Mouse {
         }
         
 };
+
+struct Camera {
+    Camera (double x, double y, double z) : pos{ x, y, z } {}
+
+    Vec3d perspective_projection(Vec3d point) {
+        double xnear = VIEW_WIDTH * tan((M_PI - FOVX) / 2) / 2;
+        double ynear = VIEW_HEIGHT * tan((M_PI - FOVY) / 2) / 2;
+        double far = xnear + 2000;
+
+        double x = point.get_x() - pos.get_x();
+        double y = point.get_y() - pos.get_y();
+        double z = point.get_z() - pos.get_z();
+
+        return Vec3d{ ((x * xnear / -z) / VIEW_WIDTH),
+                      ((y * ynear / -z) / VIEW_HEIGHT),
+                      z / far //(z < 0) ? (z / (far - xnear)) : -2
+                    };
+    }
+
+    void update(GLFWwindow* window) {
+        if (glfwGetKey(window, GLFW_KEY_LEFT))
+            pos += Vec3d{ -10, 0, 0};
+        if (glfwGetKey(window, GLFW_KEY_RIGHT))
+            pos += Vec3d{ 10, 0, 0};
+        if (glfwGetKey(window, GLFW_KEY_UP))
+            pos += Vec3d{ 0, 10, 0 };
+        if (glfwGetKey(window, GLFW_KEY_DOWN))
+            pos += Vec3d{ 0, -10, 0 };
+        if (glfwGetKey(window, GLFW_KEY_S))
+            pos += Vec3d{ 0, 0, 10 };
+        if (glfwGetKey(window, GLFW_KEY_W))
+            pos += Vec3d{ 0, 0, -10 };
+    }
+
+    Vec3d get_pos() {
+        return pos;
+    }
+
+    private:
+        Vec3d pos;
+        const double FOVX = M_PI / 3;
+        const double FOVY = M_PI / 4;
+        // Camera view plane resolution
+        const int VIEW_WIDTH = 800;
+        const int VIEW_HEIGHT = 600;
+};
