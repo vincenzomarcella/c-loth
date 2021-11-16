@@ -91,17 +91,17 @@ struct Camera {
     Camera (double x, double y, double z) : pos{ x, y, z } {}
 
     Vec3d perspective_projection(Vec3d point) {
-        double xnear = VIEW_WIDTH * tan((M_PI - FOVX) / 2) / 2;
-        double ynear = VIEW_HEIGHT * tan((M_PI - FOVY) / 2) / 2;
-        double far = xnear + 2000;
+        double near = VIEW_WIDTH * tan((M_PI - FOVX) / 2) / 2;
+        double far = near + DEPTH;
 
         double x = point.get_x() - pos.get_x();
         double y = point.get_y() - pos.get_y();
         double z = point.get_z() - pos.get_z();
 
-        return Vec3d{ ((x * xnear / -z) / VIEW_WIDTH),
-                      ((y * ynear / -z) / VIEW_HEIGHT),
-                      z / far //(z < 0) ? (z / (far - xnear)) : -2
+
+        return Vec3d{ ((x * near / -z) / VIEW_WIDTH),
+                      ((y * near / -z) / VIEW_HEIGHT),
+                      map(z, pos.get_z() - near, pos.get_z() - far, 1, -1)
                     };
     }
 
@@ -126,9 +126,9 @@ struct Camera {
 
     private:
         Vec3d pos;
-        const double FOVX = M_PI / 3;
-        const double FOVY = M_PI / 4;
+        const double FOVX = M_PI / 1.5;
         // Camera view plane resolution
         const int VIEW_WIDTH = 800;
         const int VIEW_HEIGHT = 600;
+        const int DEPTH = 3000;
 };
