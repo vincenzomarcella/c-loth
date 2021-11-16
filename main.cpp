@@ -68,19 +68,20 @@ int main() {
     float texVertices[7 * clothsize]{};
     for (i = 0; i < ROWS; i++){
         for(j = 0; j < COLS; j++){
-            texVertices[i * (ROWS * 7) + (j * 7)] = map(points[i * COLS + j]->get_pos_x(), -300, 300, -1, 1);
-            texVertices[i * (ROWS * 7) + (j * 7) + 1] = map(points[i * COLS + j]->get_pos_y(), -300, 300, -1, 1);
+            int start_index = 7 * to1d_index(i, j, COLS - 1);
+            texVertices[start_index] = map(points[i * COLS + j]->get_pos_x(), -300, 300, -1, 1);
+            texVertices[start_index + 1] = map(points[i * COLS + j]->get_pos_y(), -300, 300, -1, 1);
             /*printf(
                 "Coords for point x: %d, y: %d, x: %f, y:%f\n", 
                 i, 
                 j,
                 texVertices[i * WIDTH + j],
                 texVertices[i * WIDTH + j + 1]);*/
-            texVertices[i * (ROWS * 7) + (j * 7) + 2] = 1.0f;
-            texVertices[i * (ROWS * 7) + (j * 7) + 3] = 1.0f;
-            texVertices[i * (ROWS * 7) + (j * 7) + 4] = 1.0f;
-            texVertices[i * (ROWS * 7) + (j * 7) + 5] = map(points[i * COLS + j]->get_pos_x(), -300, 300, -1, 1);
-            texVertices[i * (ROWS * 7) + (j * 7) + 6] = map(points[i * COLS + j]->get_pos_y(), -300, 300, -1, 1);
+            texVertices[start_index + 2] = 1.0f;
+            texVertices[start_index + 3] = 1.0f;
+            texVertices[start_index + 4] = 1.0f;
+            texVertices[start_index + 5] = map(points[i * COLS + j]->get_pos_x(), -300, 300, -1, 1);
+            texVertices[start_index + 6] = map(points[i * COLS + j]->get_pos_y(), -300, 300, 1, -1);
             /*printf("Vertexes generated:\nindexes: %d %d x:%f y:%f,\nr:%f g:%f b:%f,\nx:%f y:%f\n",
             i * WIDTH + (j * 7),
             i * WIDTH + (j * 7) + 1,
@@ -127,7 +128,7 @@ int main() {
 
             int start_index = 6 * to1d_index(i, j, COLS - 1);
             // Triangle (p0, p1, p2)
-            indices[start_index    ] = to1d_index(i    , j   , COLS);
+            indices[start_index    ] = to1d_index(i   , j   , COLS);
             indices[start_index + 1] = to1d_index(i    , j + 1, COLS);
             indices[start_index + 2] = to1d_index(i + 1, j    , COLS);
             // Triangle (p1, p2, p3)
@@ -155,7 +156,7 @@ int main() {
 
     setVertexDataInterpretation();
     // Wireframe mode
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     unsigned int texture;
     glGenTextures(1, &texture);
@@ -228,9 +229,9 @@ int main() {
             );
 
         // Mapping PointMass positions
-        for (j = 0; j < n_points; j++) {
-            vertices[j * 3    ] = map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
-            vertices[j * 3 + 1] = map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
+        for (j = 0; j < clothsize; j++) {
+            texVertices[j * 7    ] = map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
+            texVertices[j * 7 + 1] = map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
             // vertices[j * 3 + 2] = z coordinate
 
         }
