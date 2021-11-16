@@ -218,8 +218,8 @@ int main() {
 
         // Mapping PointMass positions
         for (j = 0; j < clothsize; j++) {
-            //texVertices[j * 7    ] = map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
-            //texVertices[j * 7 + 1] = map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
+            texVertices[j * 7    ] = map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
+            texVertices[j * 7 + 1] = map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
             // vertices[j * 3 + 2] = z coordinate
 
         }
