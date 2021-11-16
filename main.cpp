@@ -170,7 +170,7 @@ int main() {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
     // Loading the texture
     int texture_width, texture_height, nrChannels;
-    unsigned char *data = stbi_load("italia.jpg", &texture_width, &texture_height, &nrChannels, 0);
+    unsigned char *data = stbi_load("flag.jpg", &texture_width, &texture_height, &nrChannels, 0);
     if (data) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
