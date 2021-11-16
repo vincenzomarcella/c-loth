@@ -188,8 +188,8 @@ void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int
     glLineWidth(2);
     // Drawing the points
     glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
-    glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
-    glPointSize(2);
+    //glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
+    //glPointSize(2);
 
     // Swap buffers 
     glfwSwapBuffers(window);
