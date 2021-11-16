@@ -36,3 +36,4 @@ To compile the project just run the `compile.sh` script
 - [ ] Threads to parallelize physics
 - [ ] "Compute shaders" with glsl (possible??)
 - [ ] Hair sim (requires 3d, link points between grid of points?)
+- [ ] GUI to change graphics settings
