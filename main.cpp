@@ -6,13 +6,13 @@ const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
 const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 800;
+const int WINDOW_HEIGHT = 600;
 
 const int N_PHYSICS_UPDATE = 3;
 const int N_CONSTRAIN_SOLVE = 10;
 
 const int ROWS = 30; // Number of cloth rows
-const int COLS = 50; // Number of points for each cloth row
+const int COLS = 40; // Number of points for each cloth row
 // Simulation space constrains
 const int XMAX = 1000; 
 const int YMAX = 1000;
@@ -50,8 +50,8 @@ int main() {
     for (i = 0; i < ROWS; i++)
         for (j = 0; j < COLS; j++) {
             PointMass* pm = new PointMass{
-                j * 10.0 - 100,
-                i * -10.0 + 400,
+                j * 8.0 - 100,
+                i * -8.0 + 400,
                 200,
                 false,
                 1 + 1 * (int)(i > 0 && j > 0)
@@ -185,8 +185,6 @@ int main() {
             vertices[j * 3    ] = projected.get_x();
             vertices[j * 3 + 1] = projected.get_y();
             vertices[j * 3 + 2] = projected.get_z();
-
-            // projected.print();
 
         }
 
