@@ -62,6 +62,23 @@ int main() {
 
     int n_points = sizeof(points) / sizeof(PointMass*);
 
+    const int clothsize = ROWS * COLS;
+    
+    // Array that containts the texture vertices data
+    float texVertices[7 * clothsize]{};
+    for (i = 0; i < ROWS; i++){
+        for(j = 0; j < COLS; j++){
+            int start_index = 7 * to1d_index(i, j, COLS);
+            texVertices[start_index] = map(points[i * COLS + j]->get_pos_x(), -300, 300, -1, 1);
+            texVertices[start_index + 1] = map(points[i * COLS + j]->get_pos_y(), -300, 300, -1, 1);
+            texVertices[start_index + 2] = 1.0f;
+            texVertices[start_index + 3] = 1.0f;
+            texVertices[start_index + 4] = 1.0f;
+            texVertices[start_index + 5] = map(points[i * COLS + j]->get_pos_x(), -300, 300, 0, 1);
+            texVertices[start_index + 6] = map(points[i * COLS + j]->get_pos_y(), -300, 300, 0, 1);
+        }
+    }
+
     float vertices[3 * n_points]{}; // (x, y, z) vertex data for each point
 
     // 3 indices (each referring to a (x, y, z) vertex in vertices[])
@@ -95,7 +112,7 @@ int main() {
 
             int start_index = 6 * to1d_index(i, j, COLS - 1);
             // Triangle (p0, p1, p2)
-            indices[start_index    ] = to1d_index(i    , j    , COLS);
+            indices[start_index    ] = to1d_index(i   , j   , COLS);
             indices[start_index + 1] = to1d_index(i    , j + 1, COLS);
             indices[start_index + 2] = to1d_index(i + 1, j    , COLS);
             // Triangle (p1, p2, p3)
@@ -117,11 +134,53 @@ int main() {
     unsigned int VBO = getVBO();
     unsigned int EBO = getEBO();
 
+    // Load the vertex data inside the vertex buffer object
+    // Load the vertex indices inside of the element buffer object
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 
     setVertexDataInterpretation();
     // Wireframe mode
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    // Configuring the way that textures are repeated even though it should not happen
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    // Configuring linear texture mipmapping
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    // Configuring bilinear texture filtering
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    // Configuring the vertex array striding
+    // The first two values are the vertex location
+    glEnableVertexAttribArray(0); 
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
+                       7*sizeof(float), 0);
+    // The next three attributes are the color
+    glEnableVertexAttribArray(1); 
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+                       7*sizeof(float), (void*)(2*sizeof(float)));
+    glEnableVertexAttribArray(2);  
+    // The last two attributes are the texture coordinates
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
+    // Loading the texture
+    int texture_width, texture_height, nrChannels;
+    unsigned char *data = stbi_load("jeans.jpeg", &texture_width, &texture_height, &nrChannels, 0);
+    if (data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        printf("Failed to load texture\n");
+    }
+    stbi_image_free(data);
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindVertexArray(VAO);
+    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
 
     int frame = 0;
     double current_time, elapsed, last_time = 0;
@@ -154,17 +213,18 @@ int main() {
             );
 
         // Mapping PointMass positions
-        for (j = 0; j < n_points; j++) {
-            vertices[j * 3    ] = map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
-            vertices[j * 3 + 1] = map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
+        for (j = 0; j < clothsize; j++) {
+            texVertices[j * 7    ] = map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
+            texVertices[j * 7 + 1] = map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
             // vertices[j * 3 + 2] = z coordinate
 
         }
 
         // Loading vertices into buffer
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(texVertices), texVertices, GL_DYNAMIC_DRAW);
 
         drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
+        //getchar();
     }
 
     collectGarbage(VAO, VBO, shaderProgram);
