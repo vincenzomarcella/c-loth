@@ -59,9 +59,9 @@ int main() {
     for (i = 0; i < ROWS; i++)
         for (j = 0; j < COLS; j++) {
             PointMass* pm = new PointMass{
-                j * 10.0 - 250,
-                i * -10.0 + 150,
-                0,
+                j * 8.0 - 200,
+                100,
+                i * -8.0 + 120,
                 false,
                 1 + 1 * (int)(i > 0 && j > 0)
             };
@@ -81,9 +81,12 @@ int main() {
     // points[COLS * (ROWS - 1)]->fix_position();
     // points[COLS * ROWS - 1]->fix_position();
 
-    // Fixing yop row
+    // Fixing top row
     for (j = 0; j < COLS; j++)
         points[j]->fix_position();
+    // Fixing bottom row
+    for (j = 0; j < COLS; j++)
+        points[COLS * (ROWS - 1) + j]->fix_position();
 
     int n_points = sizeof(points) / sizeof(PointMass*);
 
@@ -156,7 +159,7 @@ int main() {
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
-        frame = frame % 500 + 1;
+        frame = frame % 1000 + 1;
         current_time = glfwGetTime();
         elapsed = current_time - last_time;
         last_time = current_time; 
@@ -178,7 +181,7 @@ int main() {
                 &mouse
             );
 
-        double angle = map(frame, 0, 500, 0, 2 * M_PI);
+        double angle = map(frame, 0, 1000, 0, 2 * M_PI);
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
@@ -186,8 +189,12 @@ int main() {
             double y = points[j]->get_pos_y();
             double z = points[j]->get_pos_z();
 
-            // Vec3d rotated = rotate_y(x, y, z, angle);
-            Vec3d rotated = Vec3d{x, y, z};
+            Vec3d rotated = rotate_y(x, y, z, angle);
+            rotated = rotate_x(rotated.get_x(),
+                               rotated.get_y(),
+                               rotated.get_z(), M_PI / 8);
+
+            // Vec3d rotated = Vec3d{x, y, z};
 
             Vec3d projected = perspective_projection(rotated);
 
@@ -195,8 +202,8 @@ int main() {
             y = projected.get_y();
             z = projected.get_z();
 
-            vertices[j * 3    ] = map(x, XMIN, XMAX, -1, 1) / 2;
-            vertices[j * 3 + 1] = map(y, YMIN, YMAX, -1, 1);
+            vertices[j * 3    ] = map(x, XMIN, XMAX, -1, 1) / 2.0;
+            vertices[j * 3 + 1] = map(y, YMIN, YMAX, -1, 1) / 2.0;
             vertices[j * 3 + 2] = map(z, -1000, 1000, -1, 1);
 
         }
