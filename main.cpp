@@ -68,30 +68,14 @@ int main() {
     float texVertices[7 * clothsize]{};
     for (i = 0; i < ROWS; i++){
         for(j = 0; j < COLS; j++){
-            int start_index = 7 * to1d_index(i, j, COLS - 1);
+            int start_index = 7 * to1d_index(i, j, COLS);
             texVertices[start_index] = map(points[i * COLS + j]->get_pos_x(), -300, 300, -1, 1);
             texVertices[start_index + 1] = map(points[i * COLS + j]->get_pos_y(), -300, 300, -1, 1);
-            /*printf(
-                "Coords for point x: %d, y: %d, x: %f, y:%f\n", 
-                i, 
-                j,
-                texVertices[i * WIDTH + j],
-                texVertices[i * WIDTH + j + 1]);*/
             texVertices[start_index + 2] = 1.0f;
             texVertices[start_index + 3] = 1.0f;
             texVertices[start_index + 4] = 1.0f;
-            texVertices[start_index + 5] = map(points[i * COLS + j]->get_pos_x(), -300, 300, -1, 1);
-            texVertices[start_index + 6] = map(points[i * COLS + j]->get_pos_y(), -300, 300, 1, -1);
-            /*printf("Vertexes generated:\nindexes: %d %d x:%f y:%f,\nr:%f g:%f b:%f,\nx:%f y:%f\n",
-            i * WIDTH + (j * 7),
-            i * WIDTH + (j * 7) + 1,
-            texVertices[i * (WIDTH * 7) + (j * 7)    ],
-            texVertices[i * (WIDTH * 7) + (j * 7) + 1],
-            texVertices[i * (WIDTH * 7) + (j * 7) + 2],
-            texVertices[i * (WIDTH * 7) + (j * 7) + 3],
-            texVertices[i * (WIDTH * 7) + (j * 7) + 4],
-            texVertices[i * (WIDTH * 7) + (j * 7) + 5],
-            texVertices[i * (WIDTH * 7) + (j * 7) + 6]);*/
+            texVertices[start_index + 5] = map(points[i * COLS + j]->get_pos_x(), -300, 300, 0, 1);
+            texVertices[start_index + 6] = map(points[i * COLS + j]->get_pos_y(), -300, 300, 0, 1);
         }
     }
 
