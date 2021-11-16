@@ -1,12 +1,14 @@
 #include <cstdio>
 
 #include "physics.h"
+//#define STB_IMAGE_WRITE_IMPLEMENTATION
+//#include "stb_image_write.h"
 
 const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 800;
+const int WINDOW_WIDTH = 600;
+const int WINDOW_HEIGHT = 600;
 
 const int N_PHYSICS_UPDATE = 3;
 const int N_CONSTRAIN_SOLVE = 10;
@@ -75,8 +77,9 @@ int main() {
             texVertices[start_index + 3] = 1.0f;
             texVertices[start_index + 4] = 1.0f;
             texVertices[start_index + 5] = map(points[i * COLS + j]->get_pos_x(), -300, 300, 0, 1);
-            texVertices[start_index + 6] = map(points[i * COLS + j]->get_pos_y(), -300, 300, 0, 1);
+            texVertices[start_index + 6] = map(points[i * COLS + j]->get_pos_y(), 300, -300, 0, 1);
         }
+
     }
 
     float vertices[3 * n_points]{}; // (x, y, z) vertex data for each point
@@ -146,10 +149,10 @@ int main() {
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     // Configuring the way that textures are repeated even though it should not happen
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     // Configuring linear texture mipmapping
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     // Configuring bilinear texture filtering
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     
@@ -167,7 +170,7 @@ int main() {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
     // Loading the texture
     int texture_width, texture_height, nrChannels;
-    unsigned char *data = stbi_load("jeans.jpeg", &texture_width, &texture_height, &nrChannels, 0);
+    unsigned char *data = stbi_load("italia.jpg", &texture_width, &texture_height, &nrChannels, 0);
     if (data) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -176,6 +179,7 @@ int main() {
     {
         printf("Failed to load texture\n");
     }
+    //stbi_write_jpg("export.jpg", texture_width, texture_height, 3, data, 90);
     stbi_image_free(data);
 
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -214,8 +218,8 @@ int main() {
 
         // Mapping PointMass positions
         for (j = 0; j < clothsize; j++) {
-            texVertices[j * 7    ] = map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
-            texVertices[j * 7 + 1] = map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
+            //texVertices[j * 7    ] = map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
+            //texVertices[j * 7 + 1] = map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
             // vertices[j * 3 + 2] = z coordinate
 
         }
