@@ -1,8 +1,6 @@
 #include <cstdio>
 
 #include "physics.h"
-//#define STB_IMAGE_WRITE_IMPLEMENTATION
-//#include "stb_image_write.h"
 
 const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
@@ -199,8 +197,7 @@ int main() {
         elapsed = current_time - last_time;
         last_time = current_time; 
 
-        avg_fps = ((avg_fps * (frame - 1)) + (1 / elapsed)) / frame;
-        avg_ms = ((avg_ms * (frame - 1)) + elapsed) / frame; 
+        printf("%f %f\r", 1 / elapsed, elapsed);
 
         processInput(window);
 
@@ -228,7 +225,6 @@ int main() {
         glBufferData(GL_ARRAY_BUFFER, sizeof(texVertices), texVertices, GL_DYNAMIC_DRAW);
 
         drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
-        //getchar();
     }
 
     collectGarbage(VAO, VBO, shaderProgram);
