@@ -11,15 +11,15 @@ const int WINDOW_HEIGHT = 600;
 const int N_PHYSICS_UPDATE = 3;
 const int N_CONSTRAIN_SOLVE = 10;
 
-const int ROWS = 30; // Number of cloth rows
+const int ROWS = 40; // Number of cloth rows
 const int COLS = 40; // Number of points for each cloth row
 // Simulation space constrains
-const int XMAX = 1000; 
-const int YMAX = 1000;
-const int ZMAX = 1000;
+const int XMAX = 500; 
+const int YMAX = 500;
+const int ZMAX = 500;
 
 static Mouse mouse;
-static Camera camera{ 0.0, 0.0, 1000.0 };
+static Camera camera{ 100.0, 100.0, 500.0 };
 
 void windowResizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -31,18 +31,6 @@ void processInput(GLFWwindow* window) {
         glfwSetWindowShouldClose(window, true);
 }
 
-Vec3d rotate_x(double x, double y, double z, double angle) {
-    return Vec3d{ x, cos(angle) * y - sin(angle) * z, sin(angle) * y + cos(angle) * z };
-}
-
-Vec3d rotate_y(double x, double y, double z, double angle) {
-    return Vec3d{ cos(angle) * x + sin(angle) * z, y, -sin(angle) * x + cos(angle) * z };
-}
-
-Vec3d rotate_z(double x, double y, double z, double angle) {
-    return Vec3d{ cos(angle) * x - sin(angle) * y, sin(angle) * x + cos(angle) * y, z };
-}
-
 int main() {
     PointMass* points[COLS * ROWS]{};
 
@@ -50,9 +38,9 @@ int main() {
     for (i = 0; i < ROWS; i++)
         for (j = 0; j < COLS; j++) {
             PointMass* pm = new PointMass{
-                j * 8.0 - 100,
-                i * -8.0 + 400,
-                200,
+                j * 8.0 - 160,
+                i * -8.0 + 160,
+                0,
                 false,
                 1 + 1 * (int)(i > 0 && j > 0)
             };
@@ -141,19 +129,31 @@ int main() {
 
     int frame = 0;
     double current_time, elapsed, last_time = 0;
-    double avg_fps = 0, avg_ms = 0;
 
     mouse.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
 
+    glm::mat4 model = glm::mat4(1.0f);
+    glm::mat4 view = glm::mat4(1.0f);
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -0.8f));
+    glm::mat4 projection = glm::mat4(1.0f);
+    projection = glm::perspective(glm::radians(100.0f),
+        (float)WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 100.0f);
+
+    // Activating shader program
+    glUseProgram(shaderProgram);
+
+    int modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    
+    modelLoc = glGetUniformLocation(shaderProgram, "projection");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
     // Render loop
     while (!glfwWindowShouldClose(window)) {
-        frame = frame % 500 + 1;
+        frame = frame % 1500 + 1;
         current_time = glfwGetTime();
         elapsed = current_time - last_time;
         last_time = current_time; 
-
-        avg_fps = ((avg_fps * (frame - 1)) + (1 / elapsed)) / frame;
-        avg_ms = ((avg_ms * (frame - 1)) + elapsed) / frame; 
 
         processInput(window);
 
@@ -170,7 +170,9 @@ int main() {
                 &mouse
             );
 
-        double angle = map(frame, 0, 500, 0, 2 * M_PI);
+        view = glm::rotate(view, glm::radians(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelLoc = glGetUniformLocation(shaderProgram, "view");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(view));
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
@@ -178,14 +180,9 @@ int main() {
             double y = points[j]->get_pos_y();
             double z = points[j]->get_pos_z();
 
-            // Vec3d rotated = rotate_y(x, y, z, angle);
-            Vec3d rotated = Vec3d{x, y, z};
-            Vec3d projected = camera.perspective_projection(rotated);
-
-            vertices[j * 3    ] = projected.get_x();
-            vertices[j * 3 + 1] = projected.get_y();
-            vertices[j * 3 + 2] = projected.get_z();
-
+            vertices[j * 3    ] = map(x, -XMAX, XMAX, -1, 1);
+            vertices[j * 3 + 1] = map(y, -YMAX, YMAX, -1, 1);
+            vertices[j * 3 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
         }
 
         // Loading vertices into buffer
