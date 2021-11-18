@@ -17,23 +17,6 @@ const char* vertexShaderSource = ""
     "    ourColor = aColor;\n"
     "    TexCoord = aTexCoord;\n"
     "}\0";
-/*
-const char* fragmentShaderSource = ""
-    "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main() {\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\0";
-*/
-/*
-const char* fragmentShaderSource = ""
-    "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "uniform vec4 ourColor;\n"
-    "void main() {\n"
-    "   FragColor = ourColor;\n"
-    "}\0";
-*/
 
 const char* fragmentShaderSource = ""
     "#version 330 core\n"
@@ -170,6 +153,42 @@ unsigned int getEBO() {
     return EBO;
 }
 
+unsigned int setTexture(const char* image_filepath) {
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    // Configuring the way that textures are repeated even though it should not happen
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    // Configuring linear texture mipmapping
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // Configuring bilinear texture filtering
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    // Configuring the vertex array striding
+    // The first two values are the vertex location
+    glEnableVertexAttribArray(0); 
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), 0);
+    // The next three attributes are the color
+    glEnableVertexAttribArray(1); 
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(2);  
+    // The last two attributes are the texture coordinates
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
+
+    // Loading the texture
+    int texture_width, texture_height, nrChannels;
+    unsigned char *data = stbi_load(image_filepath, &texture_width, &texture_height, &nrChannels, 0);
+    if (data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else
+        printf("Failed to load texture\n");
+    stbi_image_free(data);
+
+    return texture;
+}
+
 void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int VAO) {
     // Clearing the screen
     // glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
@@ -183,11 +202,9 @@ void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int
     // Binding the VAO
     glBindVertexArray(VAO);
     // Drawing the triangles
-    //glUniform4f(vertexColorLocation, 1.0f, 0.5f, 0.2f, 1.0f);
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
-    glLineWidth(2);
     // Drawing the points
-    glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
+    // glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
     //glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
     //glPointSize(2);
 
