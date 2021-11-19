@@ -1,5 +1,10 @@
 #include <stdexcept>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/vector_angle.hpp>
+
 #include "graphics.h"
 #include "vec.h"
 
@@ -88,47 +93,88 @@ struct Mouse {
 };
 
 struct Camera {
-    Camera (double x, double y, double z) : pos{ x, y, z } {}
+    Camera (double x, double y, double z) {}
 
-    Vec3d perspective_projection(Vec3d point) {
-        double near = VIEW_WIDTH * tan((M_PI - FOVX) / 2) / 2;
-        double far = near + DEPTH;
-
-        double x = point.get_x() - pos.get_x();
-        double y = point.get_y() - pos.get_y();
-        double z = point.get_z() - pos.get_z();
-
-
-        return Vec3d{ ((x * near / -z) / VIEW_WIDTH),
-                      ((y * near / -z) / VIEW_HEIGHT),
-                      map(z, pos.get_z() - near, pos.get_z() - far, 1, -1)
-                    };
+    void load_matrices(unsigned int shaderProgram) {
+        // Loading uniforms matrices 
+        int modelLoc = glGetUniformLocation(shaderProgram, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     }
 
-    void update(GLFWwindow* window) {
+    void set_to_window_size(int width, int height) {
+        view_width = width;
+        view_heigth = height;
+    }
+
+    void update(GLFWwindow* window, unsigned int shaderProgram) {
+        glm::vec3 acc = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 target = pos + glm::rotateY(glm::vec3(0.0f, 0.0f, -1.0f), rotation);
+        glm::vec3 direction = glm::normalize(pos - target);
+        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 right = glm::normalize(glm::cross(up, direction));
+        up = glm::cross(direction, right);
+
         if (glfwGetKey(window, GLFW_KEY_LEFT))
-            pos += Vec3d{ -10, 0, 0};
+            acc.x = 1.0f;
         if (glfwGetKey(window, GLFW_KEY_RIGHT))
-            pos += Vec3d{ 10, 0, 0};
+            acc.x = -1.0f;
         if (glfwGetKey(window, GLFW_KEY_UP))
-            pos += Vec3d{ 0, 10, 0 };
+            acc.y = -1.0f;
         if (glfwGetKey(window, GLFW_KEY_DOWN))
-            pos += Vec3d{ 0, -10, 0 };
+            acc.y = 1.0f;
         if (glfwGetKey(window, GLFW_KEY_S))
-            pos += Vec3d{ 0, 0, 10 };
+            acc.z = -1.0f;
         if (glfwGetKey(window, GLFW_KEY_W))
-            pos += Vec3d{ 0, 0, -10 };
+            acc.z = 1.0f;
+
+        if (glfwGetKey(window, GLFW_KEY_A))
+            rotation += glm::radians(1.0f);
+        if (glfwGetKey(window, GLFW_KEY_D))
+            rotation += glm::radians(-1.0f);
+
+        if (sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z) > 0)
+            acc = glm::normalize(acc) * 5.0f;
+
+        vel = vel + acc * (1.0f / 60);
+        if (sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z) > 5.0f)
+            vel = glm::normalize(vel) * 5.0f;
+
+        pos = pos - vel * (1.0f / 60);
+        vel *= 0.95;
+            
+        view = glm::lookAt(pos, target, up);
+        // view = glm::rotate(view, rotation, glm::vec3(0.0f, 1.0f, 0.0f));
+        int modelLoc = glGetUniformLocation(shaderProgram, "view");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(view));
+
+        projection = glm::perspective(glm::radians(FOVY),
+            view_width / view_heigth, ZNEAR, ZFAR);
+        modelLoc = glGetUniformLocation(shaderProgram, "projection");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
     }
 
-    Vec3d get_pos() {
+    glm::vec3 get_pos() {
         return pos;
     }
 
+
     private:
-        Vec3d pos;
-        const double FOVX = M_PI / 1.5;
-        // Camera view plane resolution
-        const int VIEW_WIDTH = 800;
-        const int VIEW_HEIGHT = 600;
-        const int DEPTH = 3000;
+        glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f);
+        glm::vec3 vel = glm::vec3();
+        float rotation = glm::radians(0.0f);
+
+        float view_width = 800;
+        float view_heigth = 600;
+        const float FOVY = 45; // degrees
+        const float ZNEAR = 0.1f;
+        const float ZFAR = 100.0f;
+      
+        // Defining matrices
+        // object local coordinates matrix
+        glm::mat4 model = glm::mat4(1.0f); 
+        // view matrix, represents the camera view
+        glm::mat4 view; 
+        // perspective projection matrix -> to get clip coordinates
+        glm::mat4 projection; 
 };

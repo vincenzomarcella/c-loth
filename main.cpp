@@ -2,10 +2,6 @@
 
 #include "physics.h"
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
@@ -28,6 +24,7 @@ static Camera camera{ 100.0, 100.0, 500.0 };
 void windowResizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
     mouse.set_to_window_size(width, height);
+    camera.set_to_window_size(width, height);
 }
 
 void processInput(GLFWwindow* window) {
@@ -131,26 +128,16 @@ int main() {
     // Wireframe mode
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+    // Activating shader program
+    glUseProgram(shaderProgram);
+
+    camera.load_matrices(shaderProgram);
+
     int frame = 0;
     double current_time, elapsed, last_time = 0;
 
     mouse.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    glm::mat4 model = glm::mat4(1.0f);
-    glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -0.8f));
-    glm::mat4 projection = glm::mat4(1.0f);
-    projection = glm::perspective(glm::radians(100.0f),
-        (float)WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 100.0f);
-
-    // Activating shader program
-    glUseProgram(shaderProgram);
-
-    int modelLoc = glGetUniformLocation(shaderProgram, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    
-    modelLoc = glGetUniformLocation(shaderProgram, "projection");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    camera.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
@@ -163,7 +150,7 @@ int main() {
 
         // Handling mouse
         mouse.update(window, 0, XMAX, 0, YMAX);
-        camera.update(window);
+        camera.update(window, shaderProgram);
         
         for (i = 0; i < N_PHYSICS_UPDATE; i++)
             timestep(
@@ -173,10 +160,6 @@ int main() {
                 SECONDSPERFRAME / N_PHYSICS_UPDATE,
                 &mouse
             );
-
-        view = glm::rotate(view, glm::radians(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        modelLoc = glGetUniformLocation(shaderProgram, "view");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(view));
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
