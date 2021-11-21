@@ -1,3 +1,5 @@
 main.out
 main
 .vscode
+*.o
+c-loth
