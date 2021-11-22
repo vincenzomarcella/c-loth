@@ -6,50 +6,31 @@ const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
 const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 800;
+const int WINDOW_HEIGHT = 600;
 
 const int N_PHYSICS_UPDATE = 3;
 const int N_CONSTRAIN_SOLVE = 10;
 
 const int ROWS = 30; // Number of cloth rows
-const int COLS = 50; // Number of points for each cloth row
-const int WIDTH = 600; // To define a [-WIDTH/2, WIDTH/2] constrained x axis for the simulation
-const int HEIGHT = 600; // To define a [-HEIGHT/2, HEIGHT/2] constrained y axis for the simulation
-const int XMIN = -WIDTH / 2; 
-const int XMAX = WIDTH / 2;
-const int YMIN = -HEIGHT / 2; 
-const int YMAX = HEIGHT / 2;
+const int COLS = 40; // Number of points for each cloth row
+// Simulation space constrains
+const int XMAX = 500; 
+const int YMAX = 500;
+const int ZMAX = 500;
 
 static Mouse mouse;
+static Camera camera;
+float Camera::fovy = 45.0f;
 
 void windowResizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
     mouse.set_to_window_size(width, height);
+    camera.set_to_window_size(width, height);
 }
 
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-}
-
-
-Vec3d rotate_x(double x, double y, double z, double angle) {
-    return Vec3d{ x, cos(angle) * y - sin(angle) * z, sin(angle) * y + cos(angle) * z };
-}
-
-Vec3d rotate_y(double x, double y, double z, double angle) {
-    return Vec3d{ cos(angle) * x + sin(angle) * z, y, -sin(angle) * x + cos(angle) * z };
-}
-
-Vec3d rotate_z(double x, double y, double z, double angle) {
-    return Vec3d{ cos(angle) * x - sin(angle) * y, sin(angle) * x + cos(angle) * y, z };
-}
-
-Vec3d perspective_projection(Vec3d point) {
-    double x = point.get_x();
-    double y = point.get_y();
-    double z = point.get_z() - 400;
-    return Vec3d{ x * 500 / -z, y * 500 / -z, -z};
 }
 
 int main() {
@@ -59,9 +40,9 @@ int main() {
     for (i = 0; i < ROWS; i++)
         for (j = 0; j < COLS; j++) {
             PointMass* pm = new PointMass{
-                j * 8.0 - 200,
-                100,
-                i * -8.0 + 120,
+                j * 8.0 - 160,
+                i * -8.0 + 160,
+                -200,
                 false,
                 1 + 1 * (int)(i > 0 && j > 0)
             };
@@ -85,8 +66,8 @@ int main() {
     for (j = 0; j < COLS; j++)
         points[j]->fix_position();
     // Fixing bottom row
-    for (j = 0; j < COLS; j++)
-        points[COLS * (ROWS - 1) + j]->fix_position();
+    // for (j = 0; j < COLS; j++)
+    //     points[COLS * (ROWS - 1) + j]->fix_position();
 
     int n_points = sizeof(points) / sizeof(PointMass*);
 
@@ -151,37 +132,45 @@ int main() {
     // Wireframe mode
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+    // Activating shader program
+    glUseProgram(shaderProgram);
+
+    camera.load_matrices(shaderProgram);
+
     int frame = 0;
     double current_time, elapsed, last_time = 0;
-    double avg_fps = 0, avg_ms = 0;
 
     mouse.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
+    camera.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
+    // Capturing mouse inside window and hiding cursor
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetScrollCallback(window, Camera::zoom);
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
-        frame = frame % 1000 + 1;
+        frame = frame % 1500 + 1;
         current_time = glfwGetTime();
         elapsed = current_time - last_time;
         last_time = current_time; 
 
-        avg_fps = ((avg_fps * (frame - 1)) + (1 / elapsed)) / frame;
-        avg_ms = ((avg_ms * (frame - 1)) + elapsed) / frame; 
-
         processInput(window);
 
         // Handling mouse
-        mouse.update(window, XMIN, XMAX, YMIN, YMAX);
+        mouse.update(window, 0, XMAX, 0, YMAX);
+        camera.update(window, shaderProgram, mouse.get_pos());
+
+        glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
         
         for (i = 0; i < N_PHYSICS_UPDATE; i++)
             timestep(
                 points,
+                COLS,
+                ROWS,
                 n_points,
                 N_CONSTRAIN_SOLVE,
                 SECONDSPERFRAME / N_PHYSICS_UPDATE,
                 &mouse
             );
-
-        double angle = map(frame, 0, 1000, 0, 2 * M_PI);
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
@@ -189,23 +178,9 @@ int main() {
             double y = points[j]->get_pos_y();
             double z = points[j]->get_pos_z();
 
-            Vec3d rotated = rotate_y(x, y, z, angle);
-            rotated = rotate_x(rotated.get_x(),
-                               rotated.get_y(),
-                               rotated.get_z(), M_PI / 8);
-
-            // Vec3d rotated = Vec3d{x, y, z};
-
-            Vec3d projected = perspective_projection(rotated);
-
-            x = projected.get_x();
-            y = projected.get_y();
-            z = projected.get_z();
-
-            vertices[j * 3    ] = map(x, XMIN, XMAX, -1, 1) / 2.0;
-            vertices[j * 3 + 1] = map(y, YMIN, YMAX, -1, 1) / 2.0;
-            vertices[j * 3 + 2] = map(z, -1000, 1000, -1, 1);
-
+            vertices[j * 3    ] = map(x, -XMAX, XMAX, -1, 1);
+            vertices[j * 3 + 1] = map(y, -YMAX, YMAX, -1, 1);
+            vertices[j * 3 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
         }
 
         // Loading vertices into buffer
