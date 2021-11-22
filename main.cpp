@@ -122,7 +122,7 @@ int main() {
             indices[start_index + 5] = to1d_index(i + 1, j + 1, COLS);
         }
 
-    GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT);
+    GLFWwindow* window = createHelperWindow(WINDOW_WIDTH, WINDOW_HEIGHT);
     if (!window || !loadGlad())
         return -1;
 
@@ -192,7 +192,7 @@ int main() {
 
     ImGuiState* GUIState = new ImGuiState();
 
-    GLFWwindow* helperWindow = createHelperWindow(640, 480);
+    //GLFWwindow* helperWindow = createHelperWindow();
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
@@ -229,37 +229,47 @@ int main() {
         // Loading vertices into buffer
         glBufferData(GL_ARRAY_BUFFER, sizeof(texVertices), texVertices, GL_DYNAMIC_DRAW);
 
-        glfwMakeContextCurrent(helperWindow);
+        //glfwMakeContextCurrent(helperWindow);
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-        if (GUIState->show_demo_window) {
+        // Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+        if (GUIState->show_helper_window) {
             static float f = 0.0f;
             static int counter = 0;
 
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+            ImGui::Begin("C-LOTH HELPER");                          // Create a window called "Hello, world!" and append into it.
 
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &GUIState->show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &GUIState->show_another_window);
+            ImGui::Text("Graphical parameters.");               // Display some text (you can use a format strings too)
+            //ImGui::Checkbox("Demo Window", &GUIState->show_helper_window);      // Edit bools storing our window open/close state
+            ImGui::Checkbox("Wireframe", &GUIState->wireframe_enabled);
+            //ImGui::Checkbox("Another Window", &GUIState->show_another_window);
 
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&GUIState->clear_color); // Edit 3 floats representing a color
+            //ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+            //ImGui::ColorEdit3("clear color", (float*)&GUIState->clear_color); // Edit 3 floats representing a color
 
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+            /*if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter++;
             ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
+            ImGui::Text("counter = %d", counter);*/
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
         }
 
-        // 3. Show another simple window.
+        glfwMakeContextCurrent(window);
+        if(GUIState->wireframe_enabled) {
+            printf("Wireframe mode enabled");
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        } else {
+            printf("Wireframe mode disabled");
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+
+        /*// 3. Show another simple window.
         if (GUIState->show_another_window)
         {
             ImGui::Begin("Another Window", &GUIState->show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
@@ -267,9 +277,9 @@ int main() {
             if (ImGui::Button("Close Me"))
                 GUIState->show_another_window = false;
             ImGui::End();
-        }
+        }*/
 
-        drawGUIFrame(helperWindow, GUIState);
+        drawGUIFrame(window, GUIState);
         drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
     }
 
