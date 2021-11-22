@@ -31,9 +31,9 @@ To compile the project just run the `compile.sh` script
 - [ ] Add the z axis
 - [ ] Collision with an object (circle or sphere)
 - [ ] Shade the cloth (requires 3d?)
-- [ ] Gui to change simulation parameters in real time
+- [ ] Gui to change simulation parameters in real time **IN PROGRESS**
 - [ ] Add wind (using perlin noise, requires 3d)
 - [ ] Threads to parallelize physics
 - [ ] "Compute shaders" with glsl (possible??)
 - [ ] Hair sim (requires 3d, link points between grid of points?)
-- [ ] GUI to change graphics settings
+- [ ] GUI to change graphics settings **IN PROGRESS**
