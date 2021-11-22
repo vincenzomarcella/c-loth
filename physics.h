@@ -113,7 +113,7 @@ struct PointMass {
         int n_neighbors;
 };
 
-void timestep(PointMass** points, int n_points, int iterations, double dt, Mouse* mouse) {
+void timestep(PointMass** points, int cols, int rows, int n_points, int iterations, double dt, Mouse* mouse) {
     Vec3d mouse_pos = mouse->get_pos();
     Vec3d mouse_vel = mouse->get_vel();
     static PointMass* dragged_point = nullptr;
@@ -129,10 +129,10 @@ void timestep(PointMass** points, int n_points, int iterations, double dt, Mouse
     // for (j = 0; j < n_points; j++) {
     float xoff = 0;
     float yoff = 0;
-    for (i = 0; i < 30; i++) {
+    for (i = 0; i < rows; i++) {
         xoff = 0;
-        for (int k = 0; k < 50; k++) {
-            int j = k + i * 50;
+        for (int k = 0; k < cols; k++) {
+            int j = k + i * cols;
 
             float time = glfwGetTime();
 
@@ -152,7 +152,7 @@ void timestep(PointMass** points, int n_points, int iterations, double dt, Mouse
             //     closest_point = points[j];
             // }
             points[j]->update(dt);
-            xoff += 0.03;
+            xoff += 0.04;
         }
         yoff += 0.005;
     }
