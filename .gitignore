@@ -4,3 +4,4 @@ main
 *.o
 c-loth
 *.ini
+imgui.ini
