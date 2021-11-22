@@ -19,7 +19,8 @@ const int YMAX = 500;
 const int ZMAX = 500;
 
 static Mouse mouse;
-static Camera camera{ 100.0, 100.0, 500.0 };
+static Camera camera;
+float Camera::fovy = 45.0f;
 
 void windowResizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -41,7 +42,7 @@ int main() {
             PointMass* pm = new PointMass{
                 j * 8.0 - 160,
                 i * -8.0 + 160,
-                0,
+                -200,
                 false,
                 1 + 1 * (int)(i > 0 && j > 0)
             };
@@ -138,6 +139,9 @@ int main() {
 
     mouse.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
     camera.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
+    // Capturing mouse inside window and hiding cursor
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetScrollCallback(window, Camera::zoom);
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
@@ -150,7 +154,9 @@ int main() {
 
         // Handling mouse
         mouse.update(window, 0, XMAX, 0, YMAX);
-        camera.update(window, shaderProgram);
+        camera.update(window, shaderProgram, mouse.get_pos());
+
+        glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
         
         for (i = 0; i < N_PHYSICS_UPDATE; i++)
             timestep(
