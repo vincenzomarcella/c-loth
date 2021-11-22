@@ -49,8 +49,39 @@ const char* fragmentShaderSource = ""
     "    FragColor = texture(ourTexture, TexCoord);\n"
     "}\0";
 
+
+static void glfw_error_callback(int error, const char* description) {
+    fprintf(stderr, "GLFW error %d: %s\n", error, description);
+}
+
+
 GLFWwindow* createWindow(int width, int height) {
     glfwInit();
+    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); for MacOs
+
+    // Creating GLFW window
+    GLFWwindow* window = glfwCreateWindow(width, height, "C-loth", NULL, NULL);
+    if (window == NULL) {
+        printf("Failed to create GLFW window\n");
+        glfwTerminate();
+        return nullptr;
+    }
+    // Making the created window the current context
+    glfwMakeContextCurrent(window);
+    // The number of screen updates to wait before swapping buffers
+    glfwSwapInterval(1);
+    
+    return window;
+}
+
+GLFWwindow* createHelperWindow(int width, int height) {
+    if(!glfwInit()) {
+        glfwSetErrorCallback(glfw_error_callback);
+    }
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -83,7 +114,7 @@ GLFWwindow* createWindow(int width, int height) {
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
-    
+
     return window;
 }
 
@@ -189,6 +220,7 @@ unsigned int getEBO() {
 }
 
 void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int VAO) {
+    glfwMakeContextCurrent(window);
     // Clearing the screen
     // glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -215,6 +247,27 @@ void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int
     glfwPollEvents();
 }
 
+class ImGuiState {
+    public: 
+        bool show_demo_window = true;
+        bool show_another_window = false;
+        ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+};
+
+void drawGUIFrame(GLFWwindow* window, ImGuiState* GUIState) {
+    glfwMakeContextCurrent(window);
+    // Rendering
+    ImGui::Render();
+    int display_w, display_h;
+    glfwGetFramebufferSize(window, &display_w, &display_h);
+    glViewport(0, 0, display_w, display_h);
+    //glClearColor(GUIState->clear_color.x * GUIState->clear_color.w, GUIState->clear_color.y * GUIState->clear_color.w, GUIState->clear_color.z * GUIState->clear_color.w, GUIState->clear_color.w);
+    //glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    glfwSwapBuffers(window);
+} 
+
 void setVertexDataInterpretation() {
     // Telling OpenGL how to interpret the vertex data
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
@@ -225,5 +278,9 @@ void collectGarbage(unsigned int VAO, unsigned int VBO, unsigned int shaderProgr
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteProgram(shaderProgram);
+    // ImGui Cleanup
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     glfwTerminate();
 }
