@@ -1,1 +1,1 @@
-g++ main.cpp glad.c -o main -lglfw -ldl -O1
+g++ main.cpp glad.c SimplexNoise.cpp -o main -lglfw -ldl -O1

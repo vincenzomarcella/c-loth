@@ -11,11 +11,13 @@ const char* vertexShaderSource = ""
     "layout (location = 2) in vec2 aTexCoord;\n"
     "out vec3 ourColor;\n"
     "out vec2 TexCoord;\n"
-    "void main()\n"
-    "{\n"
-    "    gl_Position = vec4(aPos, 1.0);\n"
-    "    ourColor = aColor;\n"
-    "    TexCoord = aTexCoord;\n"
+    "uniform mat4 model;\n"
+    "uniform mat4 view;\n"
+    "uniform mat4 projection;\n"
+    "void main() {\n"
+    "   gl_Position = projection * view * model * vec4(aPos, 1.0);\n"
+    "   ourColor = aColor;\n"
+    "   TexCoord = aTexCoord;\n"
     "}\0";
 
 const char* fragmentShaderSource = ""
@@ -153,6 +155,21 @@ unsigned int getEBO() {
     return EBO;
 }
 
+
+void setVertexDataInterpretation() {
+    // Telling OpenGL how to interpret the vertex data
+    // Configuring the vertex array striding
+    // The first two values are the vertex location
+    glEnableVertexAttribArray(0); 
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
+    // The next three attributes are the color
+    glEnableVertexAttribArray(1); 
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);  
+    // The last two attributes are the texture coordinates
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+}
+
 unsigned int setTexture(const char* image_filepath) {
     unsigned int texture;
     glGenTextures(1, &texture);
@@ -164,18 +181,9 @@ unsigned int setTexture(const char* image_filepath) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     // Configuring bilinear texture filtering
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
-    // Configuring the vertex array striding
-    // The first two values are the vertex location
-    glEnableVertexAttribArray(0); 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), 0);
-    // The next three attributes are the color
-    glEnableVertexAttribArray(1); 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(2);  
-    // The last two attributes are the texture coordinates
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
 
+    setVertexDataInterpretation();
+    
     // Loading the texture
     int texture_width, texture_height, nrChannels;
     unsigned char *data = stbi_load(image_filepath, &texture_width, &texture_height, &nrChannels, 0);
@@ -191,34 +199,18 @@ unsigned int setTexture(const char* image_filepath) {
 
 void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int VAO) {
     // Clearing the screen
-    // glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-    float timeValue = glfwGetTime();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Activating shader program
-    glUseProgram(shaderProgram);
     // Binding the VAO
     glBindVertexArray(VAO);
     // Drawing the triangles
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
-    // Drawing the points
-    // glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
-    //glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
-    //glPointSize(2);
-
     // Swap buffers 
     glfwSwapBuffers(window);
     // Handles input and calls registered callbacks
     glfwPollEvents();
 }
 
-void setVertexDataInterpretation() {
-    // Telling OpenGL how to interpret the vertex data
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-}
 
 void collectGarbage(unsigned int VAO, unsigned int VBO, unsigned int shaderProgram) {
     glDeleteVertexArrays(1, &VAO);
