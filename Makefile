@@ -10,7 +10,7 @@ WITH_FREETYPE ?= 0
 EXE = c-loth
 IMGUI_DIR = ./imgui
 # Main source file
-SOURCES = ./main.cpp ./glad.c
+SOURCES = ./main.cpp ./glad.c ./SimplexNoise.cpp
 # Main Dear Imgui files
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 # Dear Imgui backends
