@@ -5,26 +5,27 @@
 const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
-const int WINDOW_WIDTH = 600;
+const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 
 const int N_PHYSICS_UPDATE = 3;
 const int N_CONSTRAIN_SOLVE = 10;
 
 const int ROWS = 30; // Number of cloth rows
-const int COLS = 50; // Number of points for each cloth row
-const int WIDTH = 600; // To define a [-WIDTH/2, WIDTH/2] constrained x axis for the simulation
-const int HEIGHT = 600; // To define a [-HEIGHT/2, HEIGHT/2] constrained y axis for the simulation
-const int XMIN = -WIDTH / 2; 
-const int XMAX = WIDTH / 2;
-const int YMIN = -HEIGHT / 2; 
-const int YMAX = HEIGHT / 2;
+const int COLS = 40; // Number of points for each cloth row
+// Simulation space constrains
+const int XMAX = 500; 
+const int YMAX = 500;
+const int ZMAX = 500;
 
 static Mouse mouse;
+static Camera camera;
+float Camera::fovy = 45.0f;
 
 void windowResizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
     mouse.set_to_window_size(width, height);
+    camera.set_to_window_size(width, height);
 }
 
 void processInput(GLFWwindow* window) {
@@ -56,8 +57,9 @@ int main() {
     for (i = 0; i < ROWS; i++)
         for (j = 0; j < COLS; j++) {
             PointMass* pm = new PointMass{
-                j * 10.0 - 250,
-                i * -10.0 + 250,
+                j * 8.0 - 160,
+                i * -8.0 + 160,
+                0,
                 false,
                 1 + 1 * (int)(i > 0 && j > 0)
             };
@@ -72,32 +74,33 @@ int main() {
         }   
 
     // Fixing corners
-    points[0]->fix_position();
-    points[COLS - 1]->fix_position();
-    points[COLS * (ROWS - 1)]->fix_position();
-    points[COLS * ROWS - 1]->fix_position();
+    // points[0]->fix_position();
+    // points[COLS - 1]->fix_position();
+    // points[COLS * (ROWS - 1)]->fix_position();
+    // points[COLS * ROWS - 1]->fix_position();
+
+    // Fixing top row
+    for (j = 0; j < COLS; j++)
+        points[j]->fix_position();
+    // Fixing bottom row
+    // for (j = 0; j < COLS; j++)
+    //     points[COLS * (ROWS - 1) + j]->fix_position();
 
     int n_points = sizeof(points) / sizeof(PointMass*);
-
-    const int clothsize = ROWS * COLS;
     
     // Array that containts the texture vertices data
-    float texVertices[7 * clothsize]{};
+    float tex_vertices[8 * n_points]{};
     for (i = 0; i < ROWS; i++){
         for(j = 0; j < COLS; j++){
-            int start_index = 7 * to1d_index(i, j, COLS);
-            texVertices[start_index] = map(points[i * COLS + j]->get_pos_x(), -300, 300, -1, 1);
-            texVertices[start_index + 1] = map(points[i * COLS + j]->get_pos_y(), -300, 300, -1, 1);
-            texVertices[start_index + 2] = 1.0f;
-            texVertices[start_index + 3] = 1.0f;
-            texVertices[start_index + 4] = 1.0f;
-            texVertices[start_index + 5] = map(points[i * COLS + j]->get_pos_x(), -300, 300, 0, 1);
-            texVertices[start_index + 6] = map(points[i * COLS + j]->get_pos_y(), 300, -300, 0, 1);
+            int start_index = 8 * to1d_index(i, j, COLS);
+            tex_vertices[start_index + 3] = 1.0f;
+            tex_vertices[start_index + 4] = 1.0f;
+            tex_vertices[start_index + 5] = 1.0f;
+            tex_vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(), points[0]->get_pos_x(), points[COLS - 1]->get_pos_x(), 0, 1);
+            tex_vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(), points[0]->get_pos_y(), points[COLS * ROWS - 1]->get_pos_y(), 0, 1);
         }
 
     }
-
-    float vertices[3 * n_points]{}; // (x, y, z) vertex data for each point
 
     // 3 indices (each referring to a (x, y, z) vertex in vertices[])
     // for each of the 2 triangles needed to draw a rectangle using 4 points
@@ -110,27 +113,19 @@ int main() {
             Cloth will be rendered using triangles following this pattern,
             points are stored in a flattened version of this grid matrix (points[])
             
-            +-+-+-+-+
+            +-+-+-+-+       p0 +----+ p1
+            |/|/|/|/|          |  / |
+            +-+-+-+-+          | /  |
+            |/|/|/|/|          |/   |
+            +-+-+-+-+       p2 +----+ p3
             |/|/|/|/|
             +-+-+-+-+
-            |/|/|/|/|
-            +-+-+-+-+
-            |/|/|/|/|
-            +-+-+-+-+
-
-            Each rectangle 
-
-            p0 +----+ p1
-               |  / |
-               | /  |
-               |/   |
-            p2 +----+ p3
 
             */
 
             int start_index = 6 * to1d_index(i, j, COLS - 1);
             // Triangle (p0, p1, p2)
-            indices[start_index    ] = to1d_index(i   , j   , COLS);
+            indices[start_index    ] = to1d_index(i    , j    , COLS);
             indices[start_index + 1] = to1d_index(i    , j + 1, COLS);
             indices[start_index + 2] = to1d_index(i + 1, j    , COLS);
             // Triangle (p1, p2, p3)
@@ -152,82 +147,57 @@ int main() {
     unsigned int VBO = getVBO();
     unsigned int EBO = getEBO();
 
-    // Load the vertex data inside the vertex buffer object
     // Load the vertex indices inside of the element buffer object
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 
-    setVertexDataInterpretation();
     // Wireframe mode
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    // Configuring the way that textures are repeated even though it should not happen
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    // Configuring linear texture mipmapping
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // Configuring bilinear texture filtering
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
-    // Configuring the vertex array striding
-    // The first two values are the vertex location
-    glEnableVertexAttribArray(0); 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
-                       7*sizeof(float), 0);
-    // The next three attributes are the color
-    glEnableVertexAttribArray(1); 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
-                       7*sizeof(float), (void*)(2*sizeof(float)));
-    glEnableVertexAttribArray(2);  
-    // The last two attributes are the texture coordinates
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
-    // Loading the texture
-    int texture_width, texture_height, nrChannels;
-    unsigned char *data = stbi_load("flag.jpg", &texture_width, &texture_height, &nrChannels, 0);
-    if (data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        printf("Failed to load texture\n");
-    }
-    //stbi_write_jpg("export.jpg", texture_width, texture_height, 3, data, 90);
-    stbi_image_free(data);
-
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    unsigned int texture = setTexture("jeans.jpeg");
     glBindTexture(GL_TEXTURE_2D, texture);
     glBindVertexArray(VAO);
-    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
+
+    // Activating shader program
+    glUseProgram(shaderProgram);
+
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
+    camera.load_matrices(shaderProgram);
 
     int frame = 0;
     double current_time, elapsed, last_time = 0;
-    double avg_fps = 0, avg_ms = 0;
 
     mouse.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
+    camera.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
+    // Capturing mouse inside window and hiding cursor
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetScrollCallback(window, Camera::zoom);
 
     // Initialize the state for the GUI
     ImGuiState* GUIState = new ImGuiState();
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
-        glfwMakeContextCurrent(window);
-        frame = frame % 500 + 1;
+        frame = frame % 1500 + 1;
         current_time = glfwGetTime();
         elapsed = current_time - last_time;
-        last_time = current_time; 
+        last_time = current_time;
 
-        printf("%f %f\r", 1 / elapsed, elapsed);
+        printf("%f fps %f ms \r", 1 / elapsed, elapsed);
 
         processInput(window);
 
         // Handling mouse
-        mouse.update(window, XMIN, XMAX, YMIN, YMAX);
+        mouse.update(window, 0, XMAX, 0, YMAX);
+        camera.update(window, shaderProgram, mouse.get_pos());
+
+        glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
         
         for (i = 0; i < N_PHYSICS_UPDATE; i++)
             timestep(
                 points,
+                COLS,
+                ROWS,
                 n_points,
                 N_CONSTRAIN_SOLVE,
                 SECONDSPERFRAME / N_PHYSICS_UPDATE,
@@ -235,15 +205,18 @@ int main() {
             );
 
         // Mapping PointMass positions
-        for (j = 0; j < clothsize; j++) {
-            texVertices[j * 7    ] = map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
-            texVertices[j * 7 + 1] = map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
-            // vertices[j * 3 + 2] = z coordinate
+        for (j = 0; j < n_points; j++) {
+            double x = points[j]->get_pos_x();
+            double y = points[j]->get_pos_y();
+            double z = points[j]->get_pos_z();
 
+            tex_vertices[j * 8    ] = map(x, -XMAX, XMAX, -1, 1);
+            tex_vertices[j * 8 + 1] = map(y, -YMAX, YMAX, -1, 1);
+            tex_vertices[j * 8 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
         }
 
         // Loading vertices into buffer
-        glBufferData(GL_ARRAY_BUFFER, sizeof(texVertices), texVertices, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(tex_vertices), tex_vertices, GL_DYNAMIC_DRAW);
 
 
         // Start the Dear ImGui frame
