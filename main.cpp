@@ -76,8 +76,8 @@ int main() {
             tex_vertices[start_index + 3] = 1.0f;
             tex_vertices[start_index + 4] = 1.0f;
             tex_vertices[start_index + 5] = 1.0f;
-            tex_vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(), -XMAX, XMAX, 0, 1);
-            tex_vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(), -YMAX, YMAX, 0, 1);
+            tex_vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(), points[0]->get_pos_x(), points[COLS - 1]->get_pos_x(), 0, 1);
+            tex_vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(), points[0]->get_pos_y(), points[COLS * ROWS - 1]->get_pos_y(), 0, 1);
         }
 
     }
@@ -132,7 +132,7 @@ int main() {
 
     // Wireframe mode
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    unsigned int texture = setTexture("jeans.jpeg");
+    unsigned int texture = setTexture("flag.jpg");
     glBindTexture(GL_TEXTURE_2D, texture);
     glBindVertexArray(VAO);
 
