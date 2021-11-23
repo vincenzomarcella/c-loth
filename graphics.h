@@ -54,31 +54,7 @@ static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "GLFW error %d: %s\n", error, description);
 }
 
-
 GLFWwindow* createWindow(int width, int height) {
-    glfwInit();
-    glfwWindowHint(GLFW_SAMPLES, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); for MacOs
-
-    // Creating GLFW window
-    GLFWwindow* window = glfwCreateWindow(width, height, "C-loth", NULL, NULL);
-    if (window == NULL) {
-        printf("Failed to create GLFW window\n");
-        glfwTerminate();
-        return nullptr;
-    }
-    // Making the created window the current context
-    glfwMakeContextCurrent(window);
-    // The number of screen updates to wait before swapping buffers
-    glfwSwapInterval(1);
-    
-    return window;
-}
-
-GLFWwindow* createHelperWindow(int width, int height) {
     if(!glfwInit()) {
         glfwSetErrorCallback(glfw_error_callback);
     }
@@ -235,7 +211,7 @@ void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int
     // Drawing the triangles
     //glUniform4f(vertexColorLocation, 1.0f, 0.5f, 0.2f, 1.0f);
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
-    glLineWidth(2);
+    //glLineWidth(2);
     // Drawing the points
     glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
     //glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
@@ -263,20 +239,6 @@ class ImGuiState {
         bool wireframe_enabled = false;
         ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 };
-
-void drawGUIFrame(GLFWwindow* window, ImGuiState* GUIState) {
-    glfwMakeContextCurrent(window);
-    // Rendering
-    ImGui::Render();
-    int display_w, display_h;
-    glfwGetFramebufferSize(window, &display_w, &display_h);
-    glViewport(0, 0, display_w, display_h);
-    //glClearColor(GUIState->clear_color.x * GUIState->clear_color.w, GUIState->clear_color.y * GUIState->clear_color.w, GUIState->clear_color.z * GUIState->clear_color.w, GUIState->clear_color.w);
-    //glClear(GL_COLOR_BUFFER_BIT);
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-    glfwSwapBuffers(window);
-} 
 
 void setVertexDataInterpretation() {
     // Telling OpenGL how to interpret the vertex data
