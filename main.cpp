@@ -73,9 +73,6 @@ int main() {
     for (i = 0; i < ROWS; i++){
         for(j = 0; j < COLS; j++){
             int start_index = 8 * to1d_index(i, j, COLS);
-            // tex_vertices[start_index    ] = map(points[i * COLS + j]->get_pos_x(), -300, 300, -1, 1);
-            // tex_vertices[start_index + 1] = map(points[i * COLS + j]->get_pos_y(), -300, 300, -1, 1);
-            // tex_vertices[start_index + 2] = map(points[i * COLS + j]->get_pos_z(), -300, 300, -1, 1);
             tex_vertices[start_index + 3] = 1.0f;
             tex_vertices[start_index + 4] = 1.0f;
             tex_vertices[start_index + 5] = 1.0f;
@@ -133,10 +130,8 @@ int main() {
     // Load the vertex indices inside of the element buffer object
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 
-    // setVertexDataInterpretation();
-
     // Wireframe mode
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     unsigned int texture = setTexture("jeans.jpeg");
     glBindTexture(GL_TEXTURE_2D, texture);
     glBindVertexArray(VAO);
@@ -145,6 +140,7 @@ int main() {
     glUseProgram(shaderProgram);
 
     glEnable(GL_DEPTH_TEST);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
     camera.load_matrices(shaderProgram);
 
@@ -189,13 +185,9 @@ int main() {
             double y = points[j]->get_pos_y();
             double z = points[j]->get_pos_z();
 
-            tex_vertices[j * 8    ] = map(x, -XMAX, XMAX, -1, 1); //map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
-            tex_vertices[j * 8 + 1] = map(y, -YMAX, YMAX, -1, 1); //map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
-            tex_vertices[j * 8 + 2] = map(z, -ZMAX, ZMAX, -1, 1); //map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
-
-            // vertices[j * 3    ] = map(x, -XMAX, XMAX, -1, 1);
-            // vertices[j * 3 + 1] = map(y, -YMAX, YMAX, -1, 1);
-            // vertices[j * 3 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
+            tex_vertices[j * 8    ] = map(x, -XMAX, XMAX, -1, 1);
+            tex_vertices[j * 8 + 1] = map(y, -YMAX, YMAX, -1, 1);
+            tex_vertices[j * 8 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
         }
 
         // Loading vertices into buffer
