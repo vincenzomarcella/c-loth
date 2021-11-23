@@ -235,7 +235,6 @@ void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int
 class ImGuiState {
     public: 
         bool show_helper_window = true;
-        bool show_another_window = false;
         bool wireframe_enabled = false;
         ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 };
