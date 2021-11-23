@@ -27,7 +27,7 @@ To compile the project just run the `compile.sh` script
 - [x] Lock framerate
 - [x] Pin/unpin points
 - [x] Drag points
-- [ ] Texture the cloth (texture each individual triangles/texture the whole cloth polygon)
+- [x] Texture the cloth (texture each individual triangles/texture the whole cloth polygon)
 - [ ] Add tearability (segment color based on its length)
 - [ ] Add the z axis
 - [ ] Collision with an object (circle or sphere)
@@ -37,3 +37,4 @@ To compile the project just run the `compile.sh` script
 - [ ] Threads to parallelize physics
 - [ ] "Compute shaders" with glsl (possible??)
 - [ ] Hair sim (requires 3d, link points between grid of points?)
+- [ ] GUI to change graphics settings

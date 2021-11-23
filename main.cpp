@@ -42,7 +42,7 @@ int main() {
             PointMass* pm = new PointMass{
                 j * 8.0 - 160,
                 i * -8.0 + 160,
-                -200,
+                0,
                 false,
                 1 + 1 * (int)(i > 0 && j > 0)
             };
@@ -62,13 +62,28 @@ int main() {
     // points[COLS * (ROWS - 1)]->fix_position();
     // points[COLS * ROWS - 1]->fix_position();
 
-    // Fixing yop row
+    // Fixing top row
     for (j = 0; j < COLS; j++)
         points[j]->fix_position();
 
     int n_points = sizeof(points) / sizeof(PointMass*);
+    
+    // Array that containts the texture vertices data
+    float tex_vertices[8 * n_points]{};
+    for (i = 0; i < ROWS; i++){
+        for(j = 0; j < COLS; j++){
+            int start_index = 8 * to1d_index(i, j, COLS);
+            // tex_vertices[start_index    ] = map(points[i * COLS + j]->get_pos_x(), -300, 300, -1, 1);
+            // tex_vertices[start_index + 1] = map(points[i * COLS + j]->get_pos_y(), -300, 300, -1, 1);
+            // tex_vertices[start_index + 2] = map(points[i * COLS + j]->get_pos_z(), -300, 300, -1, 1);
+            tex_vertices[start_index + 3] = 1.0f;
+            tex_vertices[start_index + 4] = 1.0f;
+            tex_vertices[start_index + 5] = 1.0f;
+            tex_vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(), -XMAX, XMAX, 0, 1);
+            tex_vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(), -YMAX, YMAX, 0, 1);
+        }
 
-    float vertices[3 * n_points]{}; // (x, y, z) vertex data for each point
+    }
 
     // 3 indices (each referring to a (x, y, z) vertex in vertices[])
     // for each of the 2 triangles needed to draw a rectangle using 4 points
@@ -81,21 +96,13 @@ int main() {
             Cloth will be rendered using triangles following this pattern,
             points are stored in a flattened version of this grid matrix (points[])
             
-            +-+-+-+-+
+            +-+-+-+-+       p0 +----+ p1
+            |/|/|/|/|          |  / |
+            +-+-+-+-+          | /  |
+            |/|/|/|/|          |/   |
+            +-+-+-+-+       p2 +----+ p3
             |/|/|/|/|
             +-+-+-+-+
-            |/|/|/|/|
-            +-+-+-+-+
-            |/|/|/|/|
-            +-+-+-+-+
-
-            Each rectangle 
-
-            p0 +----+ p1
-               |  / |
-               | /  |
-               |/   |
-            p2 +----+ p3
 
             */
 
@@ -123,14 +130,21 @@ int main() {
     unsigned int VBO = getVBO();
     unsigned int EBO = getEBO();
 
+    // Load the vertex indices inside of the element buffer object
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 
-    setVertexDataInterpretation();
+    // setVertexDataInterpretation();
+
     // Wireframe mode
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    unsigned int texture = setTexture("jeans.jpeg");
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindVertexArray(VAO);
 
     // Activating shader program
     glUseProgram(shaderProgram);
+
+    glEnable(GL_DEPTH_TEST);
 
     camera.load_matrices(shaderProgram);
 
@@ -148,7 +162,9 @@ int main() {
         frame = frame % 1500 + 1;
         current_time = glfwGetTime();
         elapsed = current_time - last_time;
-        last_time = current_time; 
+        last_time = current_time;
+
+        printf("%f fps %f ms \r", 1 / elapsed, elapsed);
 
         processInput(window);
 
@@ -173,13 +189,17 @@ int main() {
             double y = points[j]->get_pos_y();
             double z = points[j]->get_pos_z();
 
-            vertices[j * 3    ] = map(x, -XMAX, XMAX, -1, 1);
-            vertices[j * 3 + 1] = map(y, -YMAX, YMAX, -1, 1);
-            vertices[j * 3 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
+            tex_vertices[j * 8    ] = map(x, -XMAX, XMAX, -1, 1); //map(points[j]->get_pos_x(), XMIN, XMAX, -1, 1);
+            tex_vertices[j * 8 + 1] = map(y, -YMAX, YMAX, -1, 1); //map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
+            tex_vertices[j * 8 + 2] = map(z, -ZMAX, ZMAX, -1, 1); //map(points[j]->get_pos_y(), YMIN, YMAX, -1, 1);
+
+            // vertices[j * 3    ] = map(x, -XMAX, XMAX, -1, 1);
+            // vertices[j * 3 + 1] = map(y, -YMAX, YMAX, -1, 1);
+            // vertices[j * 3 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
         }
 
         // Loading vertices into buffer
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(tex_vertices), tex_vertices, GL_DYNAMIC_DRAW);
 
         drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
     }
