@@ -38,3 +38,4 @@ To compile the project just run the `compile.sh` script
 - [ ] "Compute shaders" with glsl (possible??)
 - [ ] Hair sim (requires 3d, link points between grid of points?)
 - [ ] GUI to change graphics settings **IN PROGRESS**
+- [ ] Make UI navigable with mouse in 3D mode
