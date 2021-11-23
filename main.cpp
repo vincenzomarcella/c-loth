@@ -122,7 +122,7 @@ int main() {
             indices[start_index + 5] = to1d_index(i + 1, j + 1, COLS);
         }
 
-    GLFWwindow* window = createHelperWindow(WINDOW_WIDTH, WINDOW_HEIGHT);
+    GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT);
     if (!window || !loadGlad())
         return -1;
 
@@ -190,9 +190,8 @@ int main() {
 
     mouse.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
 
+    // Initialize the state for the GUI
     ImGuiState* GUIState = new ImGuiState();
-
-    //GLFWwindow* helperWindow = createHelperWindow();
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
@@ -229,7 +228,6 @@ int main() {
         // Loading vertices into buffer
         glBufferData(GL_ARRAY_BUFFER, sizeof(texVertices), texVertices, GL_DYNAMIC_DRAW);
 
-        //glfwMakeContextCurrent(helperWindow);
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -269,17 +267,6 @@ int main() {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
 
-        /*// 3. Show another simple window.
-        if (GUIState->show_another_window)
-        {
-            ImGui::Begin("Another Window", &GUIState->show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                GUIState->show_another_window = false;
-            ImGui::End();
-        }*/
-
-        drawGUIFrame(window, GUIState);
         drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
     }
 
