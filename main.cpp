@@ -134,8 +134,8 @@ int main() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 
     // Wireframe mode
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    unsigned int texture = setTexture("flag.jpg");
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    unsigned int texture = setTexture("jeans.jpeg");
     glBindTexture(GL_TEXTURE_2D, texture);
     glBindVertexArray(VAO);
 
