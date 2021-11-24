@@ -275,14 +275,16 @@ int main() {
             ImGui::SliderFloat("Gravity", &gravity, -20.0f, 20.0f);
             GRAVITY = Vec3d{0.0f, gravity, 0.0f};
 
-            ImGui::SliderFloat("Wind Strength", &WIND_STRENGTH_MULTIPLIER, 0.0f, 2.0f);
+            ImGui::SliderFloat("Wind Strength", &WIND_STRENGTH_MULTIPLIER, 0.0f, 5.0f);
             
             ImGui::SliderInt("Mouse Sensitivity", &camera.MOUSE_SENS, 1000, 20000);
 
-            if (ImGui::Button("Unpin all")) // Buttons return true when clicked (most widgets return true when edited/activated)
-                unpinAll(points);
+            //if (ImGui::Button("Unpin all")) // Buttons return true when clicked (most widgets return true when edited/activated)
+            //    unpinAll(points);
             /*ImGui::SameLine();
             ImGui::Text("counter = %d", counter);*/
+            if (ImGui::Button("Close"))
+                glfwSetWindowShouldClose(window, true);
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
