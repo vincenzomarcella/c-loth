@@ -25,8 +25,8 @@ To compile the project just run the `make -B` command.
 
 ## TODO
 - [x] Lock framerate
-- [x] Pin/unpin points
-- [x] Drag points
+- [ ] Pin/unpin points
+- [ ] Drag points
 - [x] Texture the cloth (texture each individual triangles/texture the whole cloth polygon)
 - [ ] Add tearability (segment color based on its length)
 - [x] Add the z axis
