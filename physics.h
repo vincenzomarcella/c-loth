@@ -3,7 +3,7 @@
 #include "SimplexNoise.h"
 #include "utils.h"
 
-const Vec3d GRAVITY{ 0, -10, 0 };
+Vec3d GRAVITY{ 0, -10, 0 };
 
 struct PointMass {
     const float DAMPING = .03;
