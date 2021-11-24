@@ -178,9 +178,9 @@ unsigned int setTexture(const char* image_filepath) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     // Configuring linear texture mipmapping
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
     // Configuring bilinear texture filtering
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 
     setVertexDataInterpretation();
     
@@ -205,6 +205,8 @@ void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int
     glBindVertexArray(VAO);
     // Drawing the triangles
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
+    glPointSize(3);
+    glDrawArrays(GL_POINTS, 40 * 30, 1);
     // Swap buffers 
     glfwSwapBuffers(window);
     // Handles input and calls registered callbacks

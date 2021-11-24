@@ -72,7 +72,8 @@ int main() {
     int n_points = sizeof(points) / sizeof(PointMass*);
     
     // Array that containts the texture vertices data
-    float tex_vertices[8 * n_points]{};
+    float tex_vertices[8 * n_points + 3]{}; // +3 to store data for crosshair
+
     for (i = 0; i < ROWS; i++){
         for(j = 0; j < COLS; j++){
             int start_index = 8 * to1d_index(i, j, COLS);
@@ -163,7 +164,7 @@ int main() {
         elapsed = current_time - last_time;
         last_time = current_time;
 
-        printf("%f fps %f ms \r", 1 / elapsed, elapsed);
+        // printf("%f fps %f ms \r", 1 / elapsed, elapsed);
 
         processInput(window);
 
@@ -181,8 +182,16 @@ int main() {
                 n_points,
                 N_CONSTRAIN_SOLVE,
                 SECONDSPERFRAME / N_PHYSICS_UPDATE,
-                &mouse
+                &mouse,
+                &camera
             );
+
+        // Updating crosshair position
+        tex_vertices[8 * n_points] = camera.get_pos().x + camera.get_direction().x;
+        tex_vertices[8 * n_points + 1] = camera.get_pos().y + camera.get_direction().y;
+        tex_vertices[8 * n_points + 2] = camera.get_pos().z + camera.get_direction().z;
+
+        // printf("%f %f %f\n", camera.get_pos().x, camera.get_pos().y, camera.get_pos().z);
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
