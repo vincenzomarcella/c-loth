@@ -1,16 +1,18 @@
 #include <cstdio>
 
+#include "SimplexNoise.h"
 #include "utils.h"
 
-const Vec2d GRAVITY{ 0, -25 };
+const Vec3d GRAVITY{ 0, -10, 0 };
 
 struct PointMass {
     const float DAMPING = .03;
-    const float RESTING_DISTANCE = 8;
+    const float RESTING_DISTANCE = 12;
     const float STIFFNESS = 0.8; // from 0 to 1
+    const double MASS = 3.5;
     
-    PointMass(double x, double y, bool fixed, int n_neighbors=1)
-        : pos{ Vec2d{ x, y } }, fixed{ fixed }, n_neighbors{ n_neighbors } {
+    PointMass(double x, double y, double z, bool fixed, int n_neighbors=1)
+        : pos{ Vec3d{ x, y, z } }, fixed{ fixed }, n_neighbors{ n_neighbors } {
         old_pos = pos;
         fixed_pos = pos;
         // Storing pointer to dynamic array
@@ -22,7 +24,7 @@ struct PointMass {
         delete[] neighbors;
     }
     // Returns point pos
-    Vec2d get_pos() {
+    Vec3d get_pos() {
         return pos;
     }
     // Returns the x position coordinate casted to float
@@ -32,6 +34,10 @@ struct PointMass {
     // Returns the y position coordinate casted to float
     float get_pos_y() {
         return (float)pos.get_y();
+    }
+    // Returns the z position coordinate casted to float
+    float get_pos_z() {
+        return (float)pos.get_z();
     }
     // Fix the point on its current position
     void fix_position() {
@@ -55,18 +61,18 @@ struct PointMass {
         printf("Maximum number of neighbors reached!\n");
     }
     // Adds a given vector to the acceleration
-    void apply_force(Vec2d force) {
+    void apply_force(Vec3d force) {
         acc += force;
     }
     // Moves the point to the given pos
-    void drag_to(Vec2d pos) {
+    void drag_to(Vec3d pos) {
         this->pos = pos;
         old_pos = pos;
         fixed_pos = pos;
     }
     // Handles constrain solving for each neighbor
     void constrain() {
-        static Vec2d diff, translate;
+        static Vec3d diff, translate;
         static double d, difference;
         for (int i = 0; i < n_neighbors; i++) {
             if (neighbors[i]) {
@@ -92,24 +98,24 @@ struct PointMass {
             old_pos = pos;
             pos += (vel * (1 - DAMPING) + acc * dt);
         }
-        acc = Vec2d{};
+        acc = Vec3d{};
     }
 
     private:
-        Vec2d pos;
-        Vec2d old_pos;
-        Vec2d vel;
-        Vec2d acc{};
+        Vec3d pos;
+        Vec3d old_pos;
+        Vec3d vel;
+        Vec3d acc{};
         bool fixed;
-        Vec2d fixed_pos;
+        Vec3d fixed_pos;
         // Pointer to dynamic array containing pointers to PointMass neighbors 
         PointMass** neighbors;
         int n_neighbors;
 };
 
-void timestep(PointMass** points, int n_points, int iterations, double dt, Mouse* mouse) {
-    Vec2d mouse_pos = mouse->get_pos();
-    Vec2d mouse_vel = mouse->get_vel();
+void timestep(PointMass** points, int cols, int rows, int n_points, int iterations, double dt, Mouse* mouse) {
+    Vec3d mouse_pos = mouse->get_pos();
+    Vec3d mouse_vel = mouse->get_vel();
     static PointMass* dragged_point = nullptr;
 
     int i, j;
@@ -120,16 +126,35 @@ void timestep(PointMass** points, int n_points, int iterations, double dt, Mouse
 
     double min_distance = INFINITY;
     PointMass* closest_point = nullptr;
-    for (j = 0; j < n_points; j++) {
-        points[j]->apply_force(GRAVITY);
-        double distance_to_mouse_squared = (points[j]->get_pos() - mouse_pos).magnitude(true);
-        if (distance_to_mouse_squared < 200 && !dragged_point)
-            points[j]->apply_force(mouse->get_vel() * 50);
-        if (distance_to_mouse_squared < 100 && distance_to_mouse_squared < min_distance) {
-            min_distance = distance_to_mouse_squared;
-            closest_point = points[j];
+    // for (j = 0; j < n_points; j++) {
+    float xoff = 0;
+    float yoff = 0;
+    for (i = 0; i < rows; i++) {
+        xoff = 0;
+        for (int k = 0; k < cols; k++) {
+            int j = k + i * cols;
+
+            float time = glfwGetTime();
+
+            points[j]->apply_force(GRAVITY * points[j]->MASS);
+            float strength = (SimplexNoise::noise(xoff, yoff, time) + 1.0) / 2 * 20;
+            float phi = (SimplexNoise::noise(xoff, yoff, time)) * M_PI * 2; // horizontal angle
+            float theta = (SimplexNoise::noise(xoff, yoff, time)) * M_PI / 2; // vertical angle
+            Vec3d wind = Vec3d{ sin(phi) * cos(theta),
+                                sin(phi) * sin(theta),
+                                cos(phi) } * strength;
+            points[j]->apply_force(wind);
+            double distance_to_mouse_squared = (points[j]->get_pos() - mouse_pos).magnitude2d(true);
+            // if (distance_to_mouse_squared < 200 && !dragged_point)
+            //     points[j]->apply_force(mouse->get_vel() * 50);
+            // if (distance_to_mouse_squared < 100 && distance_to_mouse_squared < min_distance) {
+            //     min_distance = distance_to_mouse_squared;
+            //     closest_point = points[j];
+            // }
+            points[j]->update(dt);
+            xoff += 0.04;
         }
-        points[j]->update(dt);
+        yoff += 0.005;
     }
 
     if (mouse->get_left_button()) {
