@@ -136,6 +136,8 @@ struct Camera {
 
         glm::vec3 last_mouse = glm::vec3(mouse);
 
+        last_direction = glm::vec3(direction);
+
         direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         direction.y = sin(glm::radians(pitch));
         direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -190,12 +192,17 @@ struct Camera {
         return direction;
     }
 
+    glm::vec3 get_direction_vel() {
+        return direction - last_direction;
+    }
+
     static float fovy; // In degrees
 
     private:
         glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f);
         glm::vec3 vel = glm::vec3();
         glm::vec3 direction;
+        glm::vec3 last_direction;
         glm::vec3 mouse = glm::vec3();
         glm::vec3 last_mouse = glm::vec3(mouse);
 
