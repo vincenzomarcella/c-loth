@@ -1,5 +1,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -31,8 +34,15 @@ const char* fragmentShaderSource = ""
     "    FragColor = texture(ourTexture, TexCoord);\n"
     "}\0";
 
+
+static void glfw_error_callback(int error, const char* description) {
+    fprintf(stderr, "GLFW error %d: %s\n", error, description);
+}
+
 GLFWwindow* createWindow(int width, int height) {
-    glfwInit();
+    if(!glfwInit()) {
+        glfwSetErrorCallback(glfw_error_callback);
+    }
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -50,7 +60,22 @@ GLFWwindow* createWindow(int width, int height) {
     glfwMakeContextCurrent(window);
     // The number of screen updates to wait before swapping buffers
     glfwSwapInterval(1);
-    
+
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsClassic();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330 core");
+
     return window;
 }
 
@@ -178,9 +203,9 @@ unsigned int setTexture(const char* image_filepath) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     // Configuring linear texture mipmapping
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
     // Configuring bilinear texture filtering
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 
     setVertexDataInterpretation();
     
@@ -198,6 +223,7 @@ unsigned int setTexture(const char* image_filepath) {
 }
 
 void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int VAO) {
+    glfwMakeContextCurrent(window);
     // Clearing the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -205,16 +231,41 @@ void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int
     glBindVertexArray(VAO);
     // Drawing the triangles
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
+    //glLineWidth(2);
+    // Drawing the points
+    //glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
+    //glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
+    //glPointSize(2);
+
+    // Rendering
+    ImGui::Render();
+    int display_w, display_h;
+    glfwGetFramebufferSize(window, &display_w, &display_h);
+    glViewport(0, 0, display_w, display_h);
+    //glClearColor(GUIState->clear_color.x * GUIState->clear_color.w, GUIState->clear_color.y * GUIState->clear_color.w, GUIState->clear_color.z * GUIState->clear_color.w, GUIState->clear_color.w);
+    //glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
     // Swap buffers 
     glfwSwapBuffers(window);
     // Handles input and calls registered callbacks
     glfwPollEvents();
 }
 
+class ImGuiState {
+    public: 
+        bool show_helper_window = true;
+        bool wireframe_enabled = false;
+        ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+};
 
 void collectGarbage(unsigned int VAO, unsigned int VBO, unsigned int shaderProgram) {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteProgram(shaderProgram);
+    // ImGui Cleanup
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     glfwTerminate();
 }

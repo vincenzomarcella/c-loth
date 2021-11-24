@@ -189,6 +189,8 @@ struct Camera {
 
     static float fovy; // In degrees
 
+    int MOUSE_SENS = 3000;
+
     private:
         glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f);
         glm::vec3 vel = glm::vec3();
@@ -203,7 +205,6 @@ struct Camera {
         float pitch = 0; // Angle used to rotate camera direction around x axis
         float yaw_vel = 0;
         float pitch_vel = 0;
-        const int MOUSE_SENS = 3000;
 
       
         // Defining matrices
