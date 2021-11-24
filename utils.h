@@ -129,10 +129,10 @@ struct Camera {
         yaw_vel *= 0.9;
         pitch_vel *= 0.9;
 
-        // if (pitch > 89.0f)
-        //     pitch = 89.0f;
-        // if (pitch < -89.0f)
-        //     pitch = -89.0f;
+        if (pitch > 89.0f)
+            pitch = 89.0f;
+        if (pitch < -89.0f)
+            pitch = -89.0f;
 
         glm::vec3 last_mouse = glm::vec3(mouse);
 

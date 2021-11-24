@@ -5,8 +5,8 @@
 const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
+const int WINDOW_WIDTH = 1280;
+const int WINDOW_HEIGHT = 720;
 
 const int N_PHYSICS_UPDATE = 3;
 const int N_CONSTRAIN_SOLVE = 10;
@@ -136,7 +136,7 @@ int main() {
 
     // Wireframe mode
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    unsigned int texture = setTexture("jeans.jpeg");
+    unsigned int texture = setTexture("flag.jpg");
     glBindTexture(GL_TEXTURE_2D, texture);
     glBindVertexArray(VAO);
 
@@ -144,7 +144,7 @@ int main() {
     glUseProgram(shaderProgram);
 
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
     camera.load_matrices(shaderProgram);
 
@@ -207,7 +207,7 @@ int main() {
         // Loading vertices into buffer
         glBufferData(GL_ARRAY_BUFFER, sizeof(tex_vertices), tex_vertices, GL_DYNAMIC_DRAW);
 
-        drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
+        drawFrame(window, n_points, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
     }
 
     collectGarbage(VAO, VBO, shaderProgram);
