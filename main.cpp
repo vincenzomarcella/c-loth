@@ -22,15 +22,35 @@ static Mouse mouse;
 static Camera camera;
 float Camera::fovy = 45.0f;
 
+bool cursorEnabled = false;
+
 void windowResizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
     mouse.set_to_window_size(width, height);
     camera.set_to_window_size(width, height);
 }
 
+void switchCursorMode(GLFWwindow* window) {
+    cursorEnabled = !cursorEnabled;
+    if(cursorEnabled == true)  {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    } else {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+}
+
+
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    if (key == GLFW_KEY_TAB && action == GLFW_PRESS)
+        switchCursorMode(window);
 }
 
 
@@ -169,9 +189,15 @@ int main() {
 
     mouse.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
     camera.set_to_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    // Setting the inputmode so that a key state cannot change more than once per buffer swap
+    //glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
+
     // Capturing mouse inside window and hiding cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetScrollCallback(window, Camera::zoom);
+
+    glfwSetKeyCallback(window, key_callback);
 
     // Initialize the state for the GUI
     ImGuiState* GUIState = new ImGuiState();
@@ -185,13 +211,19 @@ int main() {
 
         printf("%f fps %f ms \r", 1 / elapsed, elapsed);
 
-        processInput(window);
+        //processInput(window);
 
         // Handling mouse
-        mouse.update(window, 0, XMAX, 0, YMAX);
-        camera.update(window, shaderProgram, mouse.get_pos());
+        //mouse.update(window, 0, XMAX, 0, YMAX);
+        //camera.update(window, shaderProgram, mouse.get_pos());
 
-        glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+        mouse.update(window, 0, XMAX, 0, YMAX);
+
+        if(!cursorEnabled) {
+            glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+            // Handling mouse
+            camera.update(window, shaderProgram, mouse.get_pos());
+        }
         
         for (i = 0; i < N_PHYSICS_UPDATE; i++)
             timestep(
