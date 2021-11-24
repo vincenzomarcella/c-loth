@@ -21,7 +21,7 @@ Set up and install the GLAD library:
 - (optional) go into `src` and copy the `glad.c` file in the root of this project,
 - copy the folders inside `include` into `/usr/include`,
 
-To compile the project just run the `compile.sh` script
+To compile the project just run the `make -B` command.
 
 ## TODO
 - [x] Lock framerate
@@ -29,13 +29,13 @@ To compile the project just run the `compile.sh` script
 - [x] Drag points
 - [x] Texture the cloth (texture each individual triangles/texture the whole cloth polygon)
 - [ ] Add tearability (segment color based on its length)
-- [ ] Add the z axis
+- [x] Add the z axis
 - [ ] Collision with an object (circle or sphere)
 - [ ] Shade the cloth (requires 3d?)
-- [ ] Gui to change simulation parameters in real time **IN PROGRESS**
-- [ ] Add wind (using perlin noise, requires 3d)
+- [x] Gui to change simulation parameters in real time **(EXPANDABLE FEATURE)**
+- [x] Add wind (using perlin noise, requires 3d)
 - [ ] Threads to parallelize physics
 - [ ] "Compute shaders" with glsl (possible??)
 - [ ] Hair sim (requires 3d, link points between grid of points?)
-- [ ] GUI to change graphics settings **IN PROGRESS**
-- [ ] Make UI navigable with mouse in 3D mode
+- [x] GUI to change graphics settings **(EXPANDABLE FEATURE)**
+- [x] Make UI navigable with mouse in 3D mode
