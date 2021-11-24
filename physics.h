@@ -64,6 +64,9 @@ struct PointMass {
     void apply_force(Vec3d force) {
         acc += force;
     }
+    void apply_force(glm::vec3 force) {
+        acc += Vec3d(force.x, force.y, force.z);
+    }
     // Moves the point to the given pos
     void drag_to(Vec3d pos) {
         this->pos = pos;
@@ -159,7 +162,7 @@ void timestep(PointMass** points, int cols, int rows, int n_points, int iteratio
             }
 
             if (dist_squared < 40 && !dragged_point)
-                points[j]->apply_force(mouse->get_vel() * 30000);
+                points[j]->apply_force(camera->get_direction_vel() * 50000.0f);
            
             points[j]->update(dt);
             xoff += 0.03;
