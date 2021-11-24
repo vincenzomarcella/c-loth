@@ -120,6 +120,7 @@ void timestep(PointMass** points, int cols, int rows, int n_points, int iteratio
     Vec3d mouse_pos = mouse->get_pos();
     Vec3d mouse_vel = mouse->get_vel();
     static PointMass* dragged_point = nullptr;
+    static float dragged_dist;
 
     int i, j;
     for (i = 0; i < iterations; i++) {
@@ -133,6 +134,7 @@ void timestep(PointMass** points, int cols, int rows, int n_points, int iteratio
     float xoff = 0;
     float yoff = 0;
     float min_dist = 1000000;
+    float min_dist_to_camera;
     glm::vec3 camera_pos = camera->get_pos() * 500.0f;
     glm::vec3 ray = camera->get_direction() * 100.0f;
 
@@ -150,7 +152,7 @@ void timestep(PointMass** points, int cols, int rows, int n_points, int iteratio
             Vec3d wind = Vec3d{ sin(phi) * cos(theta),
                                 sin(phi) * sin(theta),
                                 cos(phi) } * strength;
-            // points[j]->apply_force(wind);
+            points[j]->apply_force(wind);
 
             glm::vec3 dist_to_camera = glm::vec3(points[j]->get_pos_x(), points[j]->get_pos_y(), points[j]->get_pos_z()) - camera_pos;
             float dist_squared = (dist_to_camera.x * dist_to_camera.x + dist_to_camera.y * dist_to_camera.y + dist_to_camera.z * dist_to_camera.z) -
@@ -159,6 +161,7 @@ void timestep(PointMass** points, int cols, int rows, int n_points, int iteratio
             if (dist_squared < min_dist) {
                 min_dist = dist_squared;
                 closest_point = points[j];
+                min_dist_to_camera = glm::length(dist_to_camera);
             }
 
             if (dist_squared < 40 && !dragged_point)
@@ -170,13 +173,15 @@ void timestep(PointMass** points, int cols, int rows, int n_points, int iteratio
         yoff += 0.005;
     }
 
-
     if (mouse->get_left_button()) {
         if (dragged_point) {
+            ray *= dragged_dist;
             dragged_point->fix_position();
-            dragged_point->drag_to(Vec3d(camera_pos.x + ray.x * 10, camera_pos.y + ray.y * 10, camera_pos.z + ray.z * 10));
-        } else
+            dragged_point->drag_to(Vec3d(camera_pos.x + ray.x, camera_pos.y + ray.y, camera_pos.z + ray.z));
+        } else {
             dragged_point = closest_point;
+            dragged_dist = min_dist_to_camera / 100;
+        }
     } else if (mouse->get_right_button()) {
         if (closest_point)
             closest_point->unfix_position();
