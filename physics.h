@@ -4,6 +4,7 @@
 #include "utils.h"
 
 Vec3d GRAVITY{ 0, -10, 0 };
+float WIND_STRENGTH_MULTIPLIER = 1;
 
 struct PointMass {
     const float DAMPING = .03;
@@ -137,7 +138,7 @@ void timestep(PointMass** points, int cols, int rows, int n_points, int iteratio
             float time = glfwGetTime();
 
             points[j]->apply_force(GRAVITY * points[j]->MASS);
-            float strength = (SimplexNoise::noise(xoff, yoff, time) + 1.0) / 2 * 20;
+            float strength = ((SimplexNoise::noise(xoff, yoff, time) + 1.0) / 2 * 20) * WIND_STRENGTH_MULTIPLIER;
             float phi = (SimplexNoise::noise(xoff, yoff, time)) * M_PI * 2; // horizontal angle
             float theta = (SimplexNoise::noise(xoff, yoff, time)) * M_PI / 2; // vertical angle
             Vec3d wind = Vec3d{ sin(phi) * cos(theta),
