@@ -35,6 +35,7 @@ void switchCursorMode(GLFWwindow* window) {
     if(cursorEnabled == true)  {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     } else {
+        glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 }
@@ -202,6 +203,9 @@ int main() {
     // Initialize the state for the GUI
     ImGuiState* GUIState = new ImGuiState();
 
+
+    float gravity = -10.0f;
+
     // Render loop
     while (!glfwWindowShouldClose(window)) {
         frame = frame % 1500 + 1;
@@ -268,10 +272,10 @@ int main() {
             ImGui::Checkbox("Wireframe", &GUIState->wireframe_enabled);
             //ImGui::Checkbox("Another Window", &GUIState->show_another_window);
 
-            //ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            //ImGui::ColorEdit3("clear color", (float*)&GUIState->clear_color); // Edit 3 floats representing a color
+            ImGui::SliderFloat("Gravity", &gravity, -20.0f, 20.0f);
+            GRAVITY = Vec3d{0.0f, gravity, 0.0f};
 
-            if (ImGui::Button("Unpin all"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+            if (ImGui::Button("Unpin all")) // Buttons return true when clicked (most widgets return true when edited/activated)
                 unpinAll(points);
             /*ImGui::SameLine();
             ImGui::Text("counter = %d", counter);*/
