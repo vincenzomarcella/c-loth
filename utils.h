@@ -114,12 +114,16 @@ struct Camera {
         Camera::fovy = (int)min(max(1, (Camera::fovy + yoff)), 179);
     }
 
+    static void activate_cursor_interaction(GLFWwindow* window, int a) {
+        Camera::is_cursor_in_window = true;
+    }
+
     void update(GLFWwindow* window, unsigned int shaderProgram, float dt, Vec3d mouse_pos) {
         glm::vec2 mouse = glm::vec2(mouse_pos.get_x(), mouse_pos.get_y());
 
-        yaw_vel += mouse.x * MOUSE_SENS * dt;
-        pitch_vel += mouse.y * MOUSE_SENS * dt;
-        // TODO: limit rotation velocities and deal with initial cursor out of window 
+        yaw_vel += mouse.x * MOUSE_SENS * dt * is_cursor_in_window;
+        pitch_vel += mouse.y * MOUSE_SENS * dt * is_cursor_in_window;
+        // TODO: limit rotation velocities
         yaw += yaw_vel * dt;
         pitch += pitch_vel * dt;
 
@@ -197,6 +201,7 @@ struct Camera {
     }
 
     static float fovy; // In degrees
+    static bool is_cursor_in_window;
 
     private:
         glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f);
