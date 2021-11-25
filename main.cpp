@@ -170,7 +170,7 @@ int main() {
 
         // Handling mouse
         mouse.update(window, 0, XMAX, 0, YMAX);
-        camera.update(window, shaderProgram, mouse.get_pos());
+        camera.update(window, shaderProgram, elapsed, mouse.get_pos());
 
         glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
         
