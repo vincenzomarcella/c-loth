@@ -21,6 +21,7 @@ const int ZMAX = 500;
 static Mouse mouse;
 static Camera camera;
 float Camera::fovy = 45.0f;
+bool Camera::is_cursor_in_window = false;
 
 void windowResizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -80,8 +81,12 @@ int main() {
             tex_vertices[start_index + 3] = 1.0f;
             tex_vertices[start_index + 4] = 1.0f;
             tex_vertices[start_index + 5] = 1.0f;
-            tex_vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(), points[0]->get_pos_x(), points[COLS - 1]->get_pos_x(), 0, 1);
-            tex_vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(), points[0]->get_pos_y(), points[COLS * ROWS - 1]->get_pos_y(), 0, 1);
+            tex_vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(),
+                                                points[0]->get_pos_x(), points[COLS - 1]->get_pos_x(),
+                                                0, 1);
+            tex_vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(),
+                                                points[0]->get_pos_y(), points[COLS * ROWS - 1]->get_pos_y(),
+                                                0, 1);
         }
 
     }
@@ -156,6 +161,7 @@ int main() {
     // Capturing mouse inside window and hiding cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetScrollCallback(window, Camera::zoom);
+    glfwSetCursorEnterCallback(window, Camera::activate_cursor_interaction);
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
