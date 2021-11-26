@@ -19,7 +19,10 @@ Set up and install the GLAD library:
 - tick the *generate a loader* function,
 - click generate and download the zipped file,
 - (optional) go into `src` and copy the `glad.c` file in the root of this project,
-- copy the folders inside `include` into `/usr/include`,
+- copy the folders inside `include` into `/usr/include`.
+
+Download the ImGui library:
+- run ```git clone https://github.com/ocornut/imgui``` inside the project root directory.
 
 To compile the project just run the `make -B` command.
 
