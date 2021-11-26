@@ -3,8 +3,9 @@
 #include "SimplexNoise.h"
 #include "utils.h"
 
-const Vec3d GRAVITY{ 0, -10, 0 };
+Vec3d GRAVITY{ 0, -10, 0 };
 const float MAX_WIND_STRENGHT = 20;
+float WIND_STRENGTH_MULTIPLIER = 1;
 
 struct PointMass {
     const float DAMPING = .03;
@@ -125,7 +126,8 @@ void timestep(
     int iterations,
     double dt,
     Mouse* mouse,
-    Camera* camera) {
+    Camera* camera,
+    bool cursor_enabled) {
 
     static PointMass* dragged_point = nullptr;
     static float dragged_dist; // Distance of dragged point from camera when it was picked
@@ -174,7 +176,7 @@ void timestep(
             float dist_to_direction_squared = glm::length2(dist_to_camera) -
                 pow(glm::dot(camera_direction, dist_to_camera) / camera->get_zfar(), 2);
 
-            if (dist_to_direction_squared < min_dist) {
+            if (dist_to_direction_squared < min_dist && cursor_enabled) {
                 min_dist = dist_to_direction_squared;
                 min_dist_to_camera = glm::length(dist_to_camera);
                 closest_point = points[k];
@@ -182,8 +184,8 @@ void timestep(
 
             // Adding forces
             points[k]->apply_force(GRAVITY * points[k]->MASS);
-            points[k]->apply_force(wind);
-            if (dist_to_direction_squared < 40 && !dragged_point)
+            points[k]->apply_force(wind * WIND_STRENGTH_MULTIPLIER);
+            if (dist_to_direction_squared < 40 && !dragged_point && cursor_enabled)
                 points[k]->apply_force(camera->get_direction_vel() * 60000.0f);
            
             points[k]->update(dt);

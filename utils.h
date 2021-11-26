@@ -203,6 +203,8 @@ struct Camera {
     static float fovy; // In degrees
     static bool is_cursor_in_window;
 
+    int MOUSE_SENS = 3000;
+
     private:
         glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f);
         glm::vec3 vel;
@@ -221,7 +223,7 @@ struct Camera {
         float yaw_vel = 0;
         float pitch_vel = 0;
 
-        float MOUSE_SENS = 5000;
+        // float MOUSE_SENS = 5000;
         const float MOVEMENT_FRICTION = 0.05;
         const float ROTATION_FRICTION = 0.1;
         const float MAX_ACCELERATION = 5.0;
