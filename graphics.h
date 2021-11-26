@@ -31,7 +31,7 @@ const char* fragmentShaderSource = ""
     "uniform sampler2D ourTexture;\n"
     "void main()\n"
     "{\n"
-    "    FragColor = texture(ourTexture, TexCoord);\n"
+    "    FragColor = texture(ourTexture, TexCoord) * vec4(ourColor, 1.0);\n"
     "}\0";
 
 
@@ -222,7 +222,7 @@ unsigned int setTexture(const char* image_filepath) {
     return texture;
 }
 
-void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int VAO) {
+void drawFrame(GLFWwindow* window, int n_points, int nIndices, int shaderProgram, unsigned int VAO) {
     glfwMakeContextCurrent(window);
     // Clearing the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -231,11 +231,9 @@ void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int
     glBindVertexArray(VAO);
     // Drawing the triangles
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
-    //glLineWidth(2);
-    // Drawing the points
-    //glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
-    //glDrawElements(GL_POINTS, nIndices, GL_UNSIGNED_INT, 0);
-    //glPointSize(2);
+    // Drawing crosshair
+    glPointSize(3);
+    glDrawArrays(GL_POINTS, n_points, 1);
 
     // Rendering
     ImGui::Render();

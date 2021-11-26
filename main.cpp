@@ -5,8 +5,8 @@
 const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
+const int WINDOW_WIDTH = 1280;
+const int WINDOW_HEIGHT = 720;
 
 const int N_PHYSICS_UPDATE = 3;
 const int N_CONSTRAIN_SOLVE = 10;
@@ -21,6 +21,7 @@ const int ZMAX = 500;
 static Mouse mouse;
 static Camera camera;
 float Camera::fovy = 45.0f;
+bool Camera::is_cursor_in_window = false;
 
 bool cursorEnabled = false;
 
@@ -110,15 +111,20 @@ int main() {
     int n_points = sizeof(points) / sizeof(PointMass*);
     
     // Array that containts the texture vertices data
-    float tex_vertices[8 * n_points]{};
+    float tex_vertices[8 * n_points + 3]{}; // +3 to store data for crosshair
+
     for (i = 0; i < ROWS; i++){
         for(j = 0; j < COLS; j++){
             int start_index = 8 * to1d_index(i, j, COLS);
             tex_vertices[start_index + 3] = 1.0f;
             tex_vertices[start_index + 4] = 1.0f;
             tex_vertices[start_index + 5] = 1.0f;
-            tex_vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(), points[0]->get_pos_x(), points[COLS - 1]->get_pos_x(), 0, 1);
-            tex_vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(), points[0]->get_pos_y(), points[COLS * ROWS - 1]->get_pos_y(), 0, 1);
+            tex_vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(),
+                                                points[0]->get_pos_x(), points[COLS - 1]->get_pos_x(),
+                                                0, 1);
+            tex_vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(),
+                                                points[0]->get_pos_y(), points[COLS * ROWS - 1]->get_pos_y(),
+                                                0, 1);
         }
 
     }
@@ -173,7 +179,7 @@ int main() {
 
     // Wireframe mode
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    unsigned int texture = setTexture("jeans.jpeg");
+    unsigned int texture = setTexture("flag.jpg");
     glBindTexture(GL_TEXTURE_2D, texture);
     glBindVertexArray(VAO);
 
@@ -181,7 +187,7 @@ int main() {
     glUseProgram(shaderProgram);
 
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
     camera.load_matrices(shaderProgram);
 
@@ -197,12 +203,12 @@ int main() {
     // Capturing mouse inside window and hiding cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetScrollCallback(window, Camera::zoom);
+    glfwSetCursorEnterCallback(window, Camera::activate_cursor_interaction);
 
     glfwSetKeyCallback(window, key_callback);
 
     // Initialize the state for the GUI
     ImGuiState* GUIState = new ImGuiState();
-
 
     float gravity = -10.0f;
 
@@ -213,20 +219,12 @@ int main() {
         elapsed = current_time - last_time;
         last_time = current_time;
 
-        printf("%f fps %f ms \r", 1 / elapsed, elapsed);
-
-        //processInput(window);
-
-        // Handling mouse
-        //mouse.update(window, 0, XMAX, 0, YMAX);
-        //camera.update(window, shaderProgram, mouse.get_pos());
-
         mouse.update(window, 0, XMAX, 0, YMAX);
 
         if(!cursorEnabled) {
             glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
             // Handling mouse
-            camera.update(window, shaderProgram, mouse.get_pos());
+            camera.update(window, shaderProgram, elapsed, mouse.get_pos());
         }
         
         for (i = 0; i < N_PHYSICS_UPDATE; i++)
@@ -237,8 +235,17 @@ int main() {
                 n_points,
                 N_CONSTRAIN_SOLVE,
                 SECONDSPERFRAME / N_PHYSICS_UPDATE,
-                &mouse
+                &mouse,
+                &camera,
+                !cursorEnabled
             );
+
+        // Updating crosshair position
+        tex_vertices[8 * n_points] = camera.get_pos().x + camera.get_direction().x;
+        tex_vertices[8 * n_points + 1] = camera.get_pos().y + camera.get_direction().y;
+        tex_vertices[8 * n_points + 2] = camera.get_pos().z + camera.get_direction().z;
+
+        // printf("%f %f %f\n", camera.get_pos().x, camera.get_pos().y, camera.get_pos().z);
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
@@ -254,6 +261,7 @@ int main() {
         // Loading vertices into buffer
         glBufferData(GL_ARRAY_BUFFER, sizeof(tex_vertices), tex_vertices, GL_DYNAMIC_DRAW);
 
+        // drawFrame(window, n_points, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -286,20 +294,20 @@ int main() {
             if (ImGui::Button("Close"))
                 glfwSetWindowShouldClose(window, true);
 
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::Text("Performance %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
         }
 
         glfwMakeContextCurrent(window);
         if(GUIState->wireframe_enabled) {
-            printf("Wireframe mode enabled");
+            // printf("Wireframe mode enabled");
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         } else {
-            printf("Wireframe mode disabled");
+            // printf("Wireframe mode disabled");
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
 
-        drawFrame(window, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
+        drawFrame(window, n_points, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
     }
 
     collectGarbage(VAO, VBO, shaderProgram);

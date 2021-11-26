@@ -37,12 +37,12 @@ int to1d_index(int i, int j, int width) {
 struct Mouse {
     double window_x;
     double window_y;
-    // Returns the mouse pos mapped to simulation space
-    Vec3d get_pos() {
+    // Returns the mouse pos mapped to ndc coordinates
+    Vec3d get_pos() const {
         return pos;
     }
     // Returns the mouse velocity
-    Vec3d get_vel() {
+    Vec3d get_vel() const {
         return vel;
     }
     // Adjust mouse mapping variables to window size
@@ -51,11 +51,11 @@ struct Mouse {
         window_height = height;
     }
     // Returns wether the left button is being pressed
-    bool get_left_button() {
+    bool get_left_button() const {
         return left_button;
     }
     // Returns wether the right button is being pressed
-    bool get_right_button() {
+    bool get_right_button() const {
         return right_button;
     }
     // Gets current mouse position relative to window, updates button states,
@@ -95,7 +95,6 @@ struct Mouse {
                     return false;
             };
         }
-        
 };
 
 struct Camera {
@@ -115,38 +114,40 @@ struct Camera {
         Camera::fovy = (int)min(max(1, (Camera::fovy + yoff)), 179);
     }
 
-    void update(GLFWwindow* window, unsigned int shaderProgram, Vec3d mouse_pos) {
-        float dt = (1.0f / 60);
+    static void activate_cursor_interaction(GLFWwindow* window, int a) {
+        Camera::is_cursor_in_window = true;
+    }
 
-        mouse = glm::vec3(mouse_pos.get_x(), mouse_pos.get_y(), 0);
+    void update(GLFWwindow* window, unsigned int shaderProgram, float dt, Vec3d mouse_pos) {
+        glm::vec2 mouse = glm::vec2(mouse_pos.get_x(), mouse_pos.get_y());
 
-        yaw_vel += (mouse.x - last_mouse.x) * MOUSE_SENS * dt;
-        pitch_vel += (mouse.y - last_mouse.y) * MOUSE_SENS * dt;
-
+        yaw_vel += mouse.x * MOUSE_SENS * dt * is_cursor_in_window;
+        pitch_vel += mouse.y * MOUSE_SENS * dt * is_cursor_in_window;
+        // TODO: limit rotation velocities
         yaw += yaw_vel * dt;
         pitch += pitch_vel * dt;
 
-        yaw_vel *= 0.9;
-        pitch_vel *= 0.9;
+        // Constraining vertical camera rotation
+        if (pitch > 89.0f)
+            pitch = 89.0f;
+        if (pitch < -89.0f)
+            pitch = -89.0f;
 
-        // if (pitch > 89.0f)
-        //     pitch = 89.0f;
-        // if (pitch < -89.0f)
-        //     pitch = -89.0f;
-
-        glm::vec3 last_mouse = glm::vec3(mouse);
-
-        glm::vec3 direction;
+        // Calculating direction based on yaw and pitch angles
+        last_direction = glm::vec3(direction);
         direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         direction.y = sin(glm::radians(pitch));
         direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
         direction = glm::normalize(direction);
 
-        glm::vec3 world_up = glm::vec3(0.0f, 1.0f, 0.0f);
-        glm::vec3 right = glm::normalize(glm::cross(world_up, direction));
+        yaw_vel *= (1 - ROTATION_FRICTION);
+        pitch_vel *= (1 - ROTATION_FRICTION);
+
+        // Calculating camera right and up axes
+        glm::vec3 right = glm::normalize(glm::cross(WORLD_UP, direction));
         glm::vec3 up = glm::cross(direction, right);
 
-        glm::vec3 acc = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 acc = glm::vec3();
         if (glfwGetKey(window, GLFW_KEY_A))
             acc -= right;
         if (glfwGetKey(window, GLFW_KEY_D))
@@ -161,17 +162,17 @@ struct Camera {
             acc += up;
 
         // Normalizing acceleration
-        if (sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z) > 0)
-            acc = glm::normalize(acc) * 5.0f;
+        if (glm::length2(acc) > 0)
+            acc = glm::normalize(acc) * MAX_ACCELERATION;
 
         vel = vel + acc * dt;
         // Limiting velocity magnitude
-        if (sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z) > 5.0f)
-            vel = glm::normalize(vel) * 5.0f;
+        if (glm::length(vel) > MAX_VELOCITY)
+            vel = glm::normalize(vel) * MAX_VELOCITY;
 
         pos = pos - vel * dt;
-        vel *= 0.95;
-            
+        vel *= (1 - MOVEMENT_FRICTION);
+
         view = glm::lookAt(pos, pos + direction, up);
         int modelLoc = glGetUniformLocation(shaderProgram, "view");
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -183,30 +184,52 @@ struct Camera {
 
     }
 
-    glm::vec3 get_pos() {
+    glm::vec3 get_pos() const {
         return pos;
     }
 
+    glm::vec3 get_direction() const {
+        return direction;
+    }
+
+    glm::vec3 get_direction_vel() const {
+        return direction - last_direction;
+    }
+
+    float get_zfar() const {
+        return ZFAR;
+    }
+
     static float fovy; // In degrees
+    static bool is_cursor_in_window;
 
     int MOUSE_SENS = 3000;
 
     private:
         glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f);
-        glm::vec3 vel = glm::vec3();
-        glm::vec3 mouse = glm::vec3();
-        glm::vec3 last_mouse = glm::vec3(mouse);
+        glm::vec3 vel;
+        glm::vec3 direction;
+        glm::vec3 last_direction;
+
+        const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
 
         float view_width = 800;
         float view_heigth = 600;
         const float ZNEAR = 0.1f;
         const float ZFAR = 100.0f;
+
         float yaw = -90.0f; // Angle used to rotate camera direction around z axis
         float pitch = 0; // Angle used to rotate camera direction around x axis
         float yaw_vel = 0;
         float pitch_vel = 0;
 
-      
+        // float MOUSE_SENS = 5000;
+        const float MOVEMENT_FRICTION = 0.05;
+        const float ROTATION_FRICTION = 0.1;
+        const float MAX_ACCELERATION = 5.0;
+        const float MAX_VELOCITY = 10.0;
+        const float MAX_ROTATION_VELOCITY = 30.0f;
+
         // Defining matrices
         // object local coordinates matrix
         glm::mat4 model = glm::mat4(1.0f); 
