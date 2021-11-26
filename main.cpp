@@ -111,20 +111,17 @@ int main() {
     int n_points = sizeof(points) / sizeof(PointMass*);
     
     // Array that containts the texture vertices data
-    float tex_vertices[8 * n_points + 3]{}; // +3 to store data for crosshair
+    float vertices[8 * n_points + 3]{}; // +3 to store data for crosshair
 
     for (i = 0; i < ROWS; i++){
         for(j = 0; j < COLS; j++){
             int start_index = 8 * to1d_index(i, j, COLS);
-            tex_vertices[start_index + 3] = 1.0f;
-            tex_vertices[start_index + 4] = 1.0f;
-            tex_vertices[start_index + 5] = 1.0f;
-            tex_vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(),
-                                                points[0]->get_pos_x(), points[COLS - 1]->get_pos_x(),
-                                                0, 1);
-            tex_vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(),
-                                                points[0]->get_pos_y(), points[COLS * ROWS - 1]->get_pos_y(),
-                                                0, 1);
+            vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(),
+                                            points[0]->get_pos_x(), points[COLS - 1]->get_pos_x(),
+                                            0, 1);
+            vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(),
+                                            points[0]->get_pos_y(), points[COLS * ROWS - 1]->get_pos_y(),
+                                            0, 1);
         }
 
     }
@@ -211,6 +208,9 @@ int main() {
     ImGuiState* GUIState = new ImGuiState();
 
     float gravity = -10.0f;
+    // // Setting light source pos
+    int modelLoc = glGetUniformLocation(shaderProgram, "lightPos");
+    glUniform3f(modelLoc, 0.0, 0.0, 3.0);
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
@@ -225,6 +225,9 @@ int main() {
             glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
             // Handling mouse
             camera.update(window, shaderProgram, elapsed, mouse.get_pos());
+            int modelLoc = glGetUniformLocation(shaderProgram, "cameraDir");
+            glUniformMatrix3fv(modelLoc, 1, GL_FALSE, glm::value_ptr(camera.get_direction()));
+
         }
         
         for (i = 0; i < N_PHYSICS_UPDATE; i++)
@@ -240,10 +243,10 @@ int main() {
                 !cursorEnabled
             );
 
-        // Updating crosshair position
-        tex_vertices[8 * n_points] = camera.get_pos().x + camera.get_direction().x;
-        tex_vertices[8 * n_points + 1] = camera.get_pos().y + camera.get_direction().y;
-        tex_vertices[8 * n_points + 2] = camera.get_pos().z + camera.get_direction().z;
+        // Updating crosshair position -> todo: use another buffer to render crosshair
+        vertices[8 * n_points] = camera.get_pos().x + camera.get_direction().x;
+        vertices[8 * n_points + 1] = camera.get_pos().y + camera.get_direction().y;
+        vertices[8 * n_points + 2] = camera.get_pos().z + camera.get_direction().z;
 
         // printf("%f %f %f\n", camera.get_pos().x, camera.get_pos().y, camera.get_pos().z);
 
@@ -253,15 +256,31 @@ int main() {
             double y = points[j]->get_pos_y();
             double z = points[j]->get_pos_z();
 
-            tex_vertices[j * 8    ] = map(x, -XMAX, XMAX, -1, 1);
-            tex_vertices[j * 8 + 1] = map(y, -YMAX, YMAX, -1, 1);
-            tex_vertices[j * 8 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
+            vertices[j * 8    ] = map(x, -XMAX, XMAX, -1, 1);
+            vertices[j * 8 + 1] = map(y, -YMAX, YMAX, -1, 1);
+            vertices[j * 8 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
         }
 
-        // Loading vertices into buffer
-        glBufferData(GL_ARRAY_BUFFER, sizeof(tex_vertices), tex_vertices, GL_DYNAMIC_DRAW);
+        // Calculating vertex normal based on bottom and right vertexes 
+        for (i = 0; i < ROWS - 1; i++) {
+            for (j = 0; j < COLS - 1; j++) {
+                int k = j + i * COLS;
+                int kr = j + 1 + i * COLS;
+                int ku = j + (i + 1) * COLS;
 
-        // drawFrame(window, n_points, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
+                glm::vec3 p = glm::vec3(points[k]->get_pos_x(), points[k]->get_pos_y(), points[k]->get_pos_z());
+                glm::vec3 right_p = glm::vec3(points[kr]->get_pos_x(), points[kr]->get_pos_y(), points[kr]->get_pos_z());
+                glm::vec3 under_p = glm::vec3(points[ku]->get_pos_x(), points[ku]->get_pos_y(), points[ku]->get_pos_z());
+
+                glm::vec3 norm = glm::cross((right_p - p), (p - under_p));
+                            
+                vertices[k * 8 + 3] = norm.x;
+                vertices[k * 8 + 4] = norm.y;
+                vertices[k * 8 + 5] = norm.z;
+            }
+        }
+        // Loading vertices into buffer
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -307,7 +326,7 @@ int main() {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
 
-        drawFrame(window, n_points, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
+        drawFrame(window, n_points, sizeof(indices) / sizeof(unsigned int), vertices, sizeof(vertices), shaderProgram, VAO);
     }
 
     collectGarbage(VAO, VBO, shaderProgram);
