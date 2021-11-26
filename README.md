@@ -42,3 +42,4 @@ To compile the project just run the `make -B` command.
 - [ ] Hair sim (requires 3d, link points between grid of points?)
 - [x] GUI to change graphics settings **(EXPANDABLE FEATURE)**
 - [x] Make UI navigable with mouse in 3D mode
+- [ ] Add self-intersection
