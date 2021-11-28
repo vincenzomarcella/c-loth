@@ -41,7 +41,6 @@ void switchCursorMode(GLFWwindow* window) {
     }
 }
 
-
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -54,7 +53,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_TAB && action == GLFW_PRESS)
         switchCursorMode(window);
 }
-
 
 // Unpin all points except corners
 void unpinAll(PointMass* points[]) {
@@ -261,24 +259,47 @@ int main() {
             vertices[j * 8 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
         }
 
-        // Calculating vertex normal based on bottom and right vertexes 
+        // Calculating vertex normal based on bottom and right vertexes
+        glm::vec3 normals[n_points]{};
         for (i = 0; i < ROWS - 1; i++) {
             for (j = 0; j < COLS - 1; j++) {
-                int k = j + i * COLS;
-                int kr = j + 1 + i * COLS;
-                int ku = j + (i + 1) * COLS;
+                /*
+                   a     b         norm  
+                    +---+       ^   ^   ^
+                    |\ /|        \  |  /
+                    | \ |      ca \ | / db
+                    |/ \|          \|/
+                    +---+           *
+                   d     c         
 
-                glm::vec3 p = glm::vec3(points[k]->get_pos_x(), points[k]->get_pos_y(), points[k]->get_pos_z());
-                glm::vec3 right_p = glm::vec3(points[kr]->get_pos_x(), points[kr]->get_pos_y(), points[kr]->get_pos_z());
-                glm::vec3 under_p = glm::vec3(points[ku]->get_pos_x(), points[ku]->get_pos_y(), points[ku]->get_pos_z());
+                */
+                int ia = to1d_index(i    , j    , COLS);
+                int ib = to1d_index(i    , j + 1, COLS);
+                int ic = to1d_index(i + 1, j + 1, COLS);
+                int id = to1d_index(i + 1, j    , COLS);
 
-                glm::vec3 norm = glm::cross((right_p - p), (p - under_p));
-                            
-                vertices[k * 8 + 3] = norm.x;
-                vertices[k * 8 + 4] = norm.y;
-                vertices[k * 8 + 5] = norm.z;
+                glm::vec3 a = glm::vec3(points[ia]->get_pos_x(), points[ia]->get_pos_y(), points[ia]->get_pos_z());
+                glm::vec3 b = glm::vec3(points[ib]->get_pos_x(), points[ib]->get_pos_y(), points[ib]->get_pos_z());
+                glm::vec3 c = glm::vec3(points[ic]->get_pos_x(), points[ic]->get_pos_y(), points[ic]->get_pos_z());
+                glm::vec3 d = glm::vec3(points[id]->get_pos_x(), points[id]->get_pos_y(), points[id]->get_pos_z());
+
+                glm::vec3 ca = c - a;
+                glm::vec3 db = d - b;
+
+                glm::vec3 normal = glm::cross(db, ca);
+                normals[ia] += normal;
+                normals[ib] += normal;
+                normals[ic] += normal;
+                normals[id] += normal;
             }
         }
+
+        for (i = 0; i < n_points; i++) {
+            vertices[8 * i + 3] = normals[i].x;
+            vertices[8 * i + 4] = normals[i].y;
+            vertices[8 * i + 5] = normals[i].z;
+        }
+
         // Loading vertices into buffer
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
