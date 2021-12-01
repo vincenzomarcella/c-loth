@@ -10,28 +10,45 @@
 const char* vertexShaderSource = ""   
     "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
-    "layout (location = 1) in vec3 aColor;\n"
+    "layout (location = 1) in vec3 aNormal;\n"
     "layout (location = 2) in vec2 aTexCoord;\n"
-    "out vec3 ourColor;\n"
     "out vec2 TexCoord;\n"
+    "out vec3 Normal;\n"
+    "out vec3 FragPos;\n"
     "uniform mat4 model;\n"
     "uniform mat4 view;\n"
     "uniform mat4 projection;\n"
     "void main() {\n"
     "   gl_Position = projection * view * model * vec4(aPos, 1.0);\n"
-    "   ourColor = aColor;\n"
     "   TexCoord = aTexCoord;\n"
+    "   Normal = mat3(transpose(inverse(model))) * normalize(aNormal);\n"
+    "   FragPos = vec3(model * vec4(aPos, 1.0));\n"
     "}\0";
 
 const char* fragmentShaderSource = ""
     "#version 330 core\n"
     "out vec4 FragColor;\n"
-    "in vec3 ourColor;\n"
     "in vec2 TexCoord;\n"
+    "in vec3 Normal;\n"
+    "in vec3 FragPos;\n"
     "uniform sampler2D ourTexture;\n"
+    "uniform vec3 lightPos;\n"
+    "uniform vec3 cameraPos;\n"
     "void main()\n"
     "{\n"
-    "    FragColor = texture(ourTexture, TexCoord) * vec4(ourColor, 1.0);\n"
+    "   float ambientStrength = 0.1;\n"
+    "   vec3 lightColor = vec3(1.0, 1.0, 1.0);\n"
+    "   float specularStrength = 0.2;\n"
+    "   vec3 ambient = lightColor * ambientStrength;\n"
+    "   vec3 lightDir = normalize(lightPos - FragPos);\n"
+    "   float dD = max(dot(Normal, lightDir), 0.0);\n"
+    "   vec3 diffuse = lightColor * dD;\n"
+    "   vec3 viewDir = normalize(cameraPos - FragPos);\n"
+    "   vec3 reflectDir = reflect(-lightDir, Normal);\n"
+    "   float spec = pow(max(dot(viewDir, reflectDir), 0.0), 2);\n"
+    "   vec3 specular = specularStrength * spec * lightColor;\n"
+    "   if (dD == 0.0) specular *= 0.0;\n"
+    "   FragColor = texture(ourTexture, TexCoord) * vec4(ambient + diffuse + specular, 1.0);\n"
     "}\0";
 
 
@@ -222,15 +239,44 @@ unsigned int setTexture(const char* image_filepath) {
     return texture;
 }
 
-void drawFrame(GLFWwindow* window, int n_points, int nIndices, int shaderProgram, unsigned int VAO) {
+void drawFrame(
+    GLFWwindow* window,
+    int n_points,
+    int nIndices,
+    float* vertices,
+    unsigned long sizeof_vertices,
+    int shaderProgram,
+    unsigned int VAO
+) {
     glfwMakeContextCurrent(window);
     // Clearing the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Binding the VAO
     glBindVertexArray(VAO);
-    // Drawing the triangles
+    // Drawing the front side of the cloth
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
+
+    // Drawing the back side of the cloth
+    for (int j = 0; j < n_points; j++) {
+        glm::vec3 norm = glm::normalize(glm::vec3(
+            vertices[j * 8 + 3],
+            vertices[j * 8 + 4],
+            vertices[j * 8 + 5]
+        ));
+        // Pushing out points in the opposite direction of the normal
+        vertices[j * 8    ] -= 0.001 * norm.x;
+        vertices[j * 8 + 1] -= 0.001 * norm.y;
+        vertices[j * 8 + 2] -= 0.001 * norm.z;
+        // Flipping normal
+        vertices[j * 8 + 3] *= -1;
+        vertices[j * 8 + 4] *= -1;
+        vertices[j * 8 + 5] *= -1;
+    }
+    glBufferData(GL_ARRAY_BUFFER, sizeof_vertices, vertices, GL_DYNAMIC_DRAW);
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
+
     // Drawing crosshair
     glPointSize(3);
     glDrawArrays(GL_POINTS, n_points, 1);

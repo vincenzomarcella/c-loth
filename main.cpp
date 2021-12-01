@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <ctime>
 
 #include "physics.h"
 
@@ -41,7 +42,6 @@ void switchCursorMode(GLFWwindow* window) {
     }
 }
 
-
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -54,7 +54,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_TAB && action == GLFW_PRESS)
         switchCursorMode(window);
 }
-
 
 // Unpin all points except corners
 void unpinAll(PointMass* points[]) {
@@ -73,6 +72,8 @@ void unpinAll(PointMass* points[]) {
 }
 
 int main() {
+    srand((unsigned int)time(NULL));
+
     PointMass* points[COLS * ROWS]{};
 
     int i, j;
@@ -111,20 +112,17 @@ int main() {
     int n_points = sizeof(points) / sizeof(PointMass*);
     
     // Array that containts the texture vertices data
-    float tex_vertices[8 * n_points + 3]{}; // +3 to store data for crosshair
+    float vertices[8 * n_points + 3]{}; // +3 to store data for crosshair
 
     for (i = 0; i < ROWS; i++){
         for(j = 0; j < COLS; j++){
             int start_index = 8 * to1d_index(i, j, COLS);
-            tex_vertices[start_index + 3] = 1.0f;
-            tex_vertices[start_index + 4] = 1.0f;
-            tex_vertices[start_index + 5] = 1.0f;
-            tex_vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(),
-                                                points[0]->get_pos_x(), points[COLS - 1]->get_pos_x(),
-                                                0, 1);
-            tex_vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(),
-                                                points[0]->get_pos_y(), points[COLS * ROWS - 1]->get_pos_y(),
-                                                0, 1);
+            vertices[start_index + 6] = map(points[i * COLS + j]->get_pos_x(),
+                                            points[0]->get_pos_x(), points[COLS - 1]->get_pos_x(),
+                                            0, 1);
+            vertices[start_index + 7] = map(points[i * COLS + j]->get_pos_y(),
+                                            points[0]->get_pos_y(), points[COLS * ROWS - 1]->get_pos_y(),
+                                            0, 1);
         }
 
     }
@@ -211,6 +209,9 @@ int main() {
     ImGuiState* GUIState = new ImGuiState();
 
     float gravity = -10.0f;
+    // // Setting light source pos
+    int modelLoc = glGetUniformLocation(shaderProgram, "lightPos");
+    glUniform3f(modelLoc, 0.0, 0.0, 3.0);
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
@@ -225,6 +226,8 @@ int main() {
             glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
             // Handling mouse
             camera.update(window, shaderProgram, elapsed, mouse.get_pos());
+            int modelLoc = glGetUniformLocation(shaderProgram, "cameraPos");
+            glUniformMatrix3fv(modelLoc, 1, GL_FALSE, glm::value_ptr(camera.get_pos()));
         }
         
         for (i = 0; i < N_PHYSICS_UPDATE; i++)
@@ -240,10 +243,10 @@ int main() {
                 !cursorEnabled
             );
 
-        // Updating crosshair position
-        tex_vertices[8 * n_points] = camera.get_pos().x + camera.get_direction().x;
-        tex_vertices[8 * n_points + 1] = camera.get_pos().y + camera.get_direction().y;
-        tex_vertices[8 * n_points + 2] = camera.get_pos().z + camera.get_direction().z;
+        // Updating crosshair position -> todo: use another buffer to render crosshair
+        vertices[8 * n_points] = camera.get_pos().x + camera.get_direction().x;
+        vertices[8 * n_points + 1] = camera.get_pos().y + camera.get_direction().y;
+        vertices[8 * n_points + 2] = camera.get_pos().z + camera.get_direction().z;
 
         // printf("%f %f %f\n", camera.get_pos().x, camera.get_pos().y, camera.get_pos().z);
 
@@ -253,15 +256,54 @@ int main() {
             double y = points[j]->get_pos_y();
             double z = points[j]->get_pos_z();
 
-            tex_vertices[j * 8    ] = map(x, -XMAX, XMAX, -1, 1);
-            tex_vertices[j * 8 + 1] = map(y, -YMAX, YMAX, -1, 1);
-            tex_vertices[j * 8 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
+            vertices[j * 8    ] = map(x, -XMAX, XMAX, -1, 1);
+            vertices[j * 8 + 1] = map(y, -YMAX, YMAX, -1, 1);
+            vertices[j * 8 + 2] = map(z, -ZMAX, ZMAX, -1, 1);
+        }
+
+        // Calculating vertex normal based on bottom and right vertexes
+        glm::vec3 normals[n_points]{};
+        for (i = 0; i < ROWS - 1; i++) {
+            for (j = 0; j < COLS - 1; j++) {
+                /*
+                   a     b         norm  
+                    +---+       ^   ^   ^
+                    |\ /|        \  |  /
+                    | \ |      ca \ | / db
+                    |/ \|          \|/
+                    +---+           *
+                   d     c         
+
+                */
+                int ia = to1d_index(i    , j    , COLS);
+                int ib = to1d_index(i    , j + 1, COLS);
+                int ic = to1d_index(i + 1, j + 1, COLS);
+                int id = to1d_index(i + 1, j    , COLS);
+
+                glm::vec3 a = glm::vec3(points[ia]->get_pos_x(), points[ia]->get_pos_y(), points[ia]->get_pos_z());
+                glm::vec3 b = glm::vec3(points[ib]->get_pos_x(), points[ib]->get_pos_y(), points[ib]->get_pos_z());
+                glm::vec3 c = glm::vec3(points[ic]->get_pos_x(), points[ic]->get_pos_y(), points[ic]->get_pos_z());
+                glm::vec3 d = glm::vec3(points[id]->get_pos_x(), points[id]->get_pos_y(), points[id]->get_pos_z());
+
+                glm::vec3 ca = c - a;
+                glm::vec3 db = d - b;
+
+                glm::vec3 normal = glm::cross(db, ca);
+                normals[ia] += normal;
+                normals[ib] += normal;
+                normals[ic] += normal;
+                normals[id] += normal;
+            }
+        }
+
+        for (i = 0; i < n_points; i++) {
+            vertices[8 * i + 3] = normals[i].x;
+            vertices[8 * i + 4] = normals[i].y;
+            vertices[8 * i + 5] = normals[i].z;
         }
 
         // Loading vertices into buffer
-        glBufferData(GL_ARRAY_BUFFER, sizeof(tex_vertices), tex_vertices, GL_DYNAMIC_DRAW);
-
-        // drawFrame(window, n_points, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -307,7 +349,7 @@ int main() {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
 
-        drawFrame(window, n_points, sizeof(indices) / sizeof(unsigned int), shaderProgram, VAO);
+        drawFrame(window, n_points, sizeof(indices) / sizeof(unsigned int), vertices, sizeof(vertices), shaderProgram, VAO);
     }
 
     collectGarbage(VAO, VBO, shaderProgram);
