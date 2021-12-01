@@ -34,7 +34,7 @@ To compile the project just run the `make -B` command.
 - [ ] Add tearability (segment color based on its length)
 - [x] Add the z axis
 - [ ] Collision with an object (circle or sphere)
-- [ ] Shade the cloth (requires 3d?)
+- [x] Shade the cloth (requires 3d?)
 - [x] Gui to change simulation parameters in real time **(EXPANDABLE FEATURE)**
 - [x] Add wind (using perlin noise, requires 3d)
 - [ ] Threads to parallelize physics
