@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <random>
 
 #include "SimplexNoise.h"
 #include "utils.h"
@@ -131,6 +132,7 @@ void timestep(
 
     static PointMass* dragged_point = nullptr;
     static float dragged_dist; // Distance of dragged point from camera when it was picked
+    static int noise_time_off = rand() % 10000;
 
     for (int i = 0; i < iterations; i++) {
         for (int j = 0; j < n_points; j++)
@@ -139,7 +141,6 @@ void timestep(
 
     double min_distance = INFINITY;
     PointMass* closest_point = nullptr;
-    // for (j = 0; j < n_points; j++) {
     float noise_xoff = 0;
     float noise_yoff = 0;
     float min_dist = INFINITY;
@@ -156,13 +157,13 @@ void timestep(
 
             // Calculating wind vector
             float wind_strength = map(
-                SimplexNoise::noise(noise_xoff, noise_yoff, time),
+                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
                 -1, 1, 0, MAX_WIND_STRENGHT);
             float wind_phi = map( // Horizontal rotation angle
-                SimplexNoise::noise(noise_xoff, noise_yoff, time),
+                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
                 -1, 1, -M_PI, M_PI); 
             float wind_theta = map( // Vertical rotation angle
-                SimplexNoise::noise(noise_xoff, noise_yoff, time),
+                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
                 -1, 1, -M_PI_2, M_PI_2);
             Vec3d wind = Vec3d{ sin(wind_phi) * cos(wind_theta),
                                 sin(wind_phi) * sin(wind_theta),

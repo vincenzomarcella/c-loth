@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <ctime>
 
 #include "physics.h"
 
@@ -71,6 +72,8 @@ void unpinAll(PointMass* points[]) {
 }
 
 int main() {
+    srand((unsigned int)time(NULL));
+
     PointMass* points[COLS * ROWS]{};
 
     int i, j;
