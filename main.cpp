@@ -223,9 +223,8 @@ int main() {
             glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
             // Handling mouse
             camera.update(window, shaderProgram, elapsed, mouse.get_pos());
-            int modelLoc = glGetUniformLocation(shaderProgram, "cameraDir");
-            glUniformMatrix3fv(modelLoc, 1, GL_FALSE, glm::value_ptr(camera.get_direction()));
-
+            int modelLoc = glGetUniformLocation(shaderProgram, "cameraPos");
+            glUniformMatrix3fv(modelLoc, 1, GL_FALSE, glm::value_ptr(camera.get_pos()));
         }
         
         for (i = 0; i < N_PHYSICS_UPDATE; i++)

@@ -33,15 +33,22 @@ const char* fragmentShaderSource = ""
     "in vec3 FragPos;\n"
     "uniform sampler2D ourTexture;\n"
     "uniform vec3 lightPos;\n"
-    "uniform vec3 cameraDir;\n"
+    "uniform vec3 cameraPos;\n"
     "void main()\n"
     "{\n"
-    "   float ambientStrength = 0.3;\n"
+    "   float ambientStrength = 0.1;\n"
     "   vec3 lightColor = vec3(1.0, 1.0, 1.0);\n"
+    "   float specularStrength = 0.2;\n"
     "   vec3 ambient = lightColor * ambientStrength;\n"
     "   vec3 lightDir = normalize(lightPos - FragPos);\n"
-    "   vec3 diffuse = lightColor * max(dot(Normal, lightDir), 0.0);\n"
-    "   FragColor = texture(ourTexture, TexCoord) * vec4(ambient + diffuse, 1.0);\n"
+    "   float dD = max(dot(Normal, lightDir), 0.0);\n"
+    "   vec3 diffuse = lightColor * dD;\n"
+    "   vec3 viewDir = normalize(cameraPos - FragPos);\n"
+    "   vec3 reflectDir = reflect(-lightDir, Normal);\n"
+    "   float spec = pow(max(dot(viewDir, reflectDir), 0.0), 2);\n"
+    "   vec3 specular = specularStrength * spec * lightColor;\n"
+    "   if (dD == 0.0) specular *= 0.0;\n"
+    "   FragColor = texture(ourTexture, TexCoord) * vec4(ambient + diffuse + specular, 1.0);\n"
     "}\0";
 
 
@@ -232,7 +239,15 @@ unsigned int setTexture(const char* image_filepath) {
     return texture;
 }
 
-void drawFrame(GLFWwindow* window, int n_points, int nIndices, float* vertices, unsigned long sizeofvertices, int shaderProgram, unsigned int VAO) {
+void drawFrame(
+    GLFWwindow* window,
+    int n_points,
+    int nIndices,
+    float* vertices,
+    unsigned long sizeof_vertices,
+    int shaderProgram,
+    unsigned int VAO
+) {
     glfwMakeContextCurrent(window);
     // Clearing the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -258,7 +273,7 @@ void drawFrame(GLFWwindow* window, int n_points, int nIndices, float* vertices, 
         vertices[j * 8 + 4] *= -1;
         vertices[j * 8 + 5] *= -1;
     }
-    glBufferData(GL_ARRAY_BUFFER, sizeofvertices, vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof_vertices, vertices, GL_DYNAMIC_DRAW);
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
 
