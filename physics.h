@@ -5,7 +5,7 @@
 #include "utils.h"
 
 Vec3d GRAVITY{ 0, -10, 0 };
-const float MAX_WIND_STRENGHT = 20;
+const float MAX_WIND_STRENGHT = 50;
 float WIND_STRENGTH_MULTIPLIER = 1;
 
 struct PointMass {
@@ -122,6 +122,7 @@ struct PointMass {
 
 void timestep(
     PointMass** points,
+    glm::vec3* normals,
     int cols, int rows,
     int n_points,
     int iterations,
@@ -139,36 +140,56 @@ void timestep(
             points[j]->constrain();
     }
 
-    double min_distance = INFINITY;
-    PointMass* closest_point = nullptr;
+    float time = glfwGetTime();
     float noise_xoff = 0;
     float noise_yoff = 0;
+    glm::vec3 wind[n_points]{};
+    // Calculating wind field
+    for (int i = 0; i < rows - 1; i++) {
+        noise_xoff = 0;
+        for (int j = 0; j < cols - 1; j++) {
+            glm::vec3 norm = normals[to1d_index(i, j, cols - 1)];
+
+            float wind_strength = map(
+                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
+                -1, 1, 0, MAX_WIND_STRENGHT);
+            float phi = map( // Horizontal rotation angle
+                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
+                -1, 1, -M_PI, M_PI); 
+            phi = M_PI_2;
+            float theta = map( // Vertical rotation angle
+                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
+                -1, 1, -M_PI_2, M_PI_2);
+            glm::vec3 wind_vec = glm::vec3(sin(phi) * cos(theta),
+                                           sin(phi) * sin(theta),
+                                           cos(phi));
+            float intensity = max(glm::dot(norm, wind_vec), 0.000001f);
+
+            wind_vec = wind_strength * (wind_vec * intensity) / 4.0f;
+            wind[to1d_index(i    , j    , cols)] += wind_vec;
+            wind[to1d_index(i + 1, j    , cols)] += wind_vec;
+            wind[to1d_index(i    , j + 1, cols)] += wind_vec;
+            wind[to1d_index(i + 1, j + 1, cols)] += wind_vec;
+
+            noise_xoff += 0.05;
+        }
+        noise_yoff += 0.05;
+    }
+
+    double min_distance = INFINITY;
+    PointMass* closest_point = nullptr;
+   
     float min_dist = INFINITY;
     float min_dist_to_camera;
     glm::vec3 camera_pos = camera->get_pos() * 500.0f; // Why does this value work?
-    glm::vec3 camera_direction = camera->get_direction() * camera->get_zfar(); 
+    glm::vec3 camera_direction = camera->get_direction() * camera->get_zfar();
 
     for (int i = 0; i < rows; i++) {
         // Resetting noise xoffset
         noise_xoff = 0;
         for (int j = 0; j < cols; j++) {
             int k = j + i * cols; // 1d index
-            float time = glfwGetTime();
-
-            // Calculating wind vector
-            float wind_strength = map(
-                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
-                -1, 1, 0, MAX_WIND_STRENGHT);
-            float wind_phi = map( // Horizontal rotation angle
-                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
-                -1, 1, -M_PI, M_PI); 
-            float wind_theta = map( // Vertical rotation angle
-                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
-                -1, 1, -M_PI_2, M_PI_2);
-            Vec3d wind = Vec3d{ sin(wind_phi) * cos(wind_theta),
-                                sin(wind_phi) * sin(wind_theta),
-                                cos(wind_phi) } * wind_strength;
-
+       
             // Calculating closest point to camera direction
             glm::vec3 dist_to_camera = glm::vec3(
                 points[k]->get_pos_x(),
@@ -185,7 +206,7 @@ void timestep(
 
             // Adding forces
             points[k]->apply_force(GRAVITY * points[k]->MASS);
-            points[k]->apply_force(wind * WIND_STRENGTH_MULTIPLIER);
+            points[k]->apply_force(wind[k] * WIND_STRENGTH_MULTIPLIER);
             if (dist_to_direction_squared < 40 && !dragged_point && cursor_enabled)
                 points[k]->apply_force(camera->get_direction_vel() * 60000.0f);
            

@@ -213,6 +213,8 @@ int main() {
     int modelLoc = glGetUniformLocation(shaderProgram, "lightPos");
     glUniform3f(modelLoc, 0.0, 0.0, 3.0);
 
+    glm::vec3 face_normals[(COLS - 1) * (ROWS - 1)]{};
+
     // Render loop
     while (!glfwWindowShouldClose(window)) {
         frame = frame % 1500 + 1;
@@ -233,6 +235,7 @@ int main() {
         for (i = 0; i < N_PHYSICS_UPDATE; i++)
             timestep(
                 points,
+                face_normals,
                 COLS,
                 ROWS,
                 n_points,
@@ -247,8 +250,6 @@ int main() {
         vertices[8 * n_points] = camera.get_pos().x + camera.get_direction().x;
         vertices[8 * n_points + 1] = camera.get_pos().y + camera.get_direction().y;
         vertices[8 * n_points + 2] = camera.get_pos().z + camera.get_direction().z;
-
-        // printf("%f %f %f\n", camera.get_pos().x, camera.get_pos().y, camera.get_pos().z);
 
         // Mapping PointMass positions
         for (j = 0; j < n_points; j++) {
@@ -289,6 +290,7 @@ int main() {
                 glm::vec3 db = d - b;
 
                 glm::vec3 normal = glm::cross(db, ca);
+                face_normals[to1d_index(i, j, COLS - 1)] = glm::normalize(normal);
                 normals[ia] += normal;
                 normals[ib] += normal;
                 normals[ic] += normal;
