@@ -3,6 +3,7 @@
 struct Vec3d {
     Vec3d(double x, double y, double z) : x{ x }, y{ y }, z{ z } {}
     Vec3d(Vec3d* vec) : x{ vec->x }, y{ vec->y }, z{ vec->z }  {}
+    Vec3d(glm::vec3 vec) : x{ vec.x }, y{ vec.y }, z{ vec.z }  {}
     Vec3d() : x{ 0.0 }, y{ 0.0 }, z{ 0.0 } {}
 
     Vec3d operator+(Vec3d vec) {
@@ -28,15 +29,15 @@ struct Vec3d {
         z -= vec.z;
     }
 
-    double get_x() {
+    double get_x() const {
         return x;
     }
 
-    double get_y() {
+    double get_y() const {
         return y;
     }
 
-    double get_z() {
+    double get_z() const {
         return z;
     }
 

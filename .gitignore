@@ -1,3 +1,7 @@
 main.out
 main
 .vscode
+*.o
+c-loth
+*.ini
+imgui.ini

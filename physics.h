@@ -1,9 +1,12 @@
 #include <cstdio>
+#include <random>
 
 #include "SimplexNoise.h"
 #include "utils.h"
 
-const Vec3d GRAVITY{ 0, -10, 0 };
+Vec3d GRAVITY{ 0, -10, 0 };
+const float MAX_WIND_STRENGHT = 20;
+float WIND_STRENGTH_MULTIPLIER = 1;
 
 struct PointMass {
     const float DAMPING = .03;
@@ -24,19 +27,19 @@ struct PointMass {
         delete[] neighbors;
     }
     // Returns point pos
-    Vec3d get_pos() {
+    Vec3d get_pos() const {
         return pos;
     }
     // Returns the x position coordinate casted to float
-    float get_pos_x() {
+    float get_pos_x() const {
         return (float)pos.get_x();
     }
     // Returns the y position coordinate casted to float
-    float get_pos_y() {
+    float get_pos_y() const {
         return (float)pos.get_y();
     }
     // Returns the z position coordinate casted to float
-    float get_pos_z() {
+    float get_pos_z() const {
         return (float)pos.get_z();
     }
     // Fix the point on its current position
@@ -63,6 +66,9 @@ struct PointMass {
     // Adds a given vector to the acceleration
     void apply_force(Vec3d force) {
         acc += force;
+    }
+    void apply_force(glm::vec3 force) {
+        acc += Vec3d(force.x, force.y, force.z);
     }
     // Moves the point to the given pos
     void drag_to(Vec3d pos) {
@@ -113,56 +119,92 @@ struct PointMass {
         int n_neighbors;
 };
 
-void timestep(PointMass** points, int cols, int rows, int n_points, int iterations, double dt, Mouse* mouse) {
-    Vec3d mouse_pos = mouse->get_pos();
-    Vec3d mouse_vel = mouse->get_vel();
-    static PointMass* dragged_point = nullptr;
 
-    int i, j;
-    for (i = 0; i < iterations; i++) {
-        for (j = 0; j < n_points; j++)
+void timestep(
+    PointMass** points,
+    int cols, int rows,
+    int n_points,
+    int iterations,
+    double dt,
+    Mouse* mouse,
+    Camera* camera,
+    bool cursor_enabled) {
+
+    static PointMass* dragged_point = nullptr;
+    static float dragged_dist; // Distance of dragged point from camera when it was picked
+    static int noise_time_off = rand() % 10000;
+
+    for (int i = 0; i < iterations; i++) {
+        for (int j = 0; j < n_points; j++)
             points[j]->constrain();
     }
 
     double min_distance = INFINITY;
     PointMass* closest_point = nullptr;
-    // for (j = 0; j < n_points; j++) {
-    float xoff = 0;
-    float yoff = 0;
-    for (i = 0; i < rows; i++) {
-        xoff = 0;
-        for (int k = 0; k < cols; k++) {
-            int j = k + i * cols;
+    float noise_xoff = 0;
+    float noise_yoff = 0;
+    float min_dist = INFINITY;
+    float min_dist_to_camera;
+    glm::vec3 camera_pos = camera->get_pos() * 500.0f; // Why does this value work?
+    glm::vec3 camera_direction = camera->get_direction() * camera->get_zfar(); 
 
+    for (int i = 0; i < rows; i++) {
+        // Resetting noise xoffset
+        noise_xoff = 0;
+        for (int j = 0; j < cols; j++) {
+            int k = j + i * cols; // 1d index
             float time = glfwGetTime();
 
-            points[j]->apply_force(GRAVITY * points[j]->MASS);
-            float strength = (SimplexNoise::noise(xoff, yoff, time) + 1.0) / 2 * 20;
-            float phi = (SimplexNoise::noise(xoff, yoff, time)) * M_PI * 2; // horizontal angle
-            float theta = (SimplexNoise::noise(xoff, yoff, time)) * M_PI / 2; // vertical angle
-            Vec3d wind = Vec3d{ sin(phi) * cos(theta),
-                                sin(phi) * sin(theta),
-                                cos(phi) } * strength;
-            points[j]->apply_force(wind);
-            double distance_to_mouse_squared = (points[j]->get_pos() - mouse_pos).magnitude2d(true);
-            // if (distance_to_mouse_squared < 200 && !dragged_point)
-            //     points[j]->apply_force(mouse->get_vel() * 50);
-            // if (distance_to_mouse_squared < 100 && distance_to_mouse_squared < min_distance) {
-            //     min_distance = distance_to_mouse_squared;
-            //     closest_point = points[j];
-            // }
-            points[j]->update(dt);
-            xoff += 0.04;
+            // Calculating wind vector
+            float wind_strength = map(
+                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
+                -1, 1, 0, MAX_WIND_STRENGHT);
+            float wind_phi = map( // Horizontal rotation angle
+                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
+                -1, 1, -M_PI, M_PI); 
+            float wind_theta = map( // Vertical rotation angle
+                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
+                -1, 1, -M_PI_2, M_PI_2);
+            Vec3d wind = Vec3d{ sin(wind_phi) * cos(wind_theta),
+                                sin(wind_phi) * sin(wind_theta),
+                                cos(wind_phi) } * wind_strength;
+
+            // Calculating closest point to camera direction
+            glm::vec3 dist_to_camera = glm::vec3(
+                points[k]->get_pos_x(),
+                points[k]->get_pos_y(),
+                points[k]->get_pos_z()) - camera_pos;
+            float dist_to_direction_squared = glm::length2(dist_to_camera) -
+                pow(glm::dot(camera_direction, dist_to_camera) / camera->get_zfar(), 2);
+
+            if (dist_to_direction_squared < min_dist && cursor_enabled) {
+                min_dist = dist_to_direction_squared;
+                min_dist_to_camera = glm::length(dist_to_camera);
+                closest_point = points[k];
+            }
+
+            // Adding forces
+            points[k]->apply_force(GRAVITY * points[k]->MASS);
+            points[k]->apply_force(wind * WIND_STRENGTH_MULTIPLIER);
+            if (dist_to_direction_squared < 40 && !dragged_point && cursor_enabled)
+                points[k]->apply_force(camera->get_direction_vel() * 60000.0f);
+           
+            points[k]->update(dt);
+            noise_xoff += 0.03;
         }
-        yoff += 0.005;
+        noise_yoff += 0.005;
     }
 
     if (mouse->get_left_button()) {
         if (dragged_point) {
+            camera_direction *= dragged_dist;
             dragged_point->fix_position();
-            dragged_point->drag_to(mouse_pos);
-        } else
+            dragged_point->drag_to(Vec3d(camera_pos + camera_direction));
+
+        } else {
             dragged_point = closest_point;
+            dragged_dist = min_dist_to_camera / camera->get_zfar();
+        }
     } else if (mouse->get_right_button()) {
         if (closest_point)
             closest_point->unfix_position();

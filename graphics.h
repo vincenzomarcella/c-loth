@@ -1,5 +1,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -7,32 +10,56 @@
 const char* vertexShaderSource = ""   
     "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
-    "layout (location = 1) in vec3 aColor;\n"
+    "layout (location = 1) in vec3 aNormal;\n"
     "layout (location = 2) in vec2 aTexCoord;\n"
-    "out vec3 ourColor;\n"
     "out vec2 TexCoord;\n"
+    "out vec3 Normal;\n"
+    "out vec3 FragPos;\n"
     "uniform mat4 model;\n"
     "uniform mat4 view;\n"
     "uniform mat4 projection;\n"
     "void main() {\n"
     "   gl_Position = projection * view * model * vec4(aPos, 1.0);\n"
-    "   ourColor = aColor;\n"
     "   TexCoord = aTexCoord;\n"
+    "   Normal = mat3(transpose(inverse(model))) * normalize(aNormal);\n"
+    "   FragPos = vec3(model * vec4(aPos, 1.0));\n"
     "}\0";
 
 const char* fragmentShaderSource = ""
     "#version 330 core\n"
     "out vec4 FragColor;\n"
-    "in vec3 ourColor;\n"
     "in vec2 TexCoord;\n"
+    "in vec3 Normal;\n"
+    "in vec3 FragPos;\n"
     "uniform sampler2D ourTexture;\n"
+    "uniform vec3 lightPos;\n"
+    "uniform vec3 cameraPos;\n"
     "void main()\n"
     "{\n"
-    "    FragColor = texture(ourTexture, TexCoord);\n"
+    "   float ambientStrength = 0.1;\n"
+    "   vec3 lightColor = vec3(1.0, 1.0, 1.0);\n"
+    "   float specularStrength = 0.2;\n"
+    "   vec3 ambient = lightColor * ambientStrength;\n"
+    "   vec3 lightDir = normalize(lightPos - FragPos);\n"
+    "   float dD = max(dot(Normal, lightDir), 0.0);\n"
+    "   vec3 diffuse = lightColor * dD;\n"
+    "   vec3 viewDir = normalize(cameraPos - FragPos);\n"
+    "   vec3 reflectDir = reflect(-lightDir, Normal);\n"
+    "   float spec = pow(max(dot(viewDir, reflectDir), 0.0), 2);\n"
+    "   vec3 specular = specularStrength * spec * lightColor;\n"
+    "   if (dD == 0.0) specular *= 0.0;\n"
+    "   FragColor = texture(ourTexture, TexCoord) * vec4(ambient + diffuse + specular, 1.0);\n"
     "}\0";
 
+
+static void glfw_error_callback(int error, const char* description) {
+    fprintf(stderr, "GLFW error %d: %s\n", error, description);
+}
+
 GLFWwindow* createWindow(int width, int height) {
-    glfwInit();
+    if(!glfwInit()) {
+        glfwSetErrorCallback(glfw_error_callback);
+    }
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -50,7 +77,22 @@ GLFWwindow* createWindow(int width, int height) {
     glfwMakeContextCurrent(window);
     // The number of screen updates to wait before swapping buffers
     glfwSwapInterval(1);
-    
+
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsClassic();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330 core");
+
     return window;
 }
 
@@ -178,9 +220,9 @@ unsigned int setTexture(const char* image_filepath) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     // Configuring linear texture mipmapping
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
     // Configuring bilinear texture filtering
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 
     setVertexDataInterpretation();
     
@@ -197,24 +239,77 @@ unsigned int setTexture(const char* image_filepath) {
     return texture;
 }
 
-void drawFrame(GLFWwindow* window, int nIndices, int shaderProgram, unsigned int VAO) {
+void drawFrame(
+    GLFWwindow* window,
+    int n_points,
+    int nIndices,
+    float* vertices,
+    unsigned long sizeof_vertices,
+    int shaderProgram,
+    unsigned int VAO
+) {
+    glfwMakeContextCurrent(window);
     // Clearing the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Binding the VAO
     glBindVertexArray(VAO);
-    // Drawing the triangles
+    // Drawing the front side of the cloth
     glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
+
+    // Drawing the back side of the cloth
+    for (int j = 0; j < n_points; j++) {
+        glm::vec3 norm = glm::normalize(glm::vec3(
+            vertices[j * 8 + 3],
+            vertices[j * 8 + 4],
+            vertices[j * 8 + 5]
+        ));
+        // Pushing out points in the opposite direction of the normal
+        vertices[j * 8    ] -= 0.001 * norm.x;
+        vertices[j * 8 + 1] -= 0.001 * norm.y;
+        vertices[j * 8 + 2] -= 0.001 * norm.z;
+        // Flipping normal
+        vertices[j * 8 + 3] *= -1;
+        vertices[j * 8 + 4] *= -1;
+        vertices[j * 8 + 5] *= -1;
+    }
+    glBufferData(GL_ARRAY_BUFFER, sizeof_vertices, vertices, GL_DYNAMIC_DRAW);
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, 0);
+
+    // Drawing crosshair
+    glPointSize(3);
+    glDrawArrays(GL_POINTS, n_points, 1);
+
+    // Rendering
+    ImGui::Render();
+    int display_w, display_h;
+    glfwGetFramebufferSize(window, &display_w, &display_h);
+    glViewport(0, 0, display_w, display_h);
+    //glClearColor(GUIState->clear_color.x * GUIState->clear_color.w, GUIState->clear_color.y * GUIState->clear_color.w, GUIState->clear_color.z * GUIState->clear_color.w, GUIState->clear_color.w);
+    //glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
     // Swap buffers 
     glfwSwapBuffers(window);
     // Handles input and calls registered callbacks
     glfwPollEvents();
 }
 
+class ImGuiState {
+    public: 
+        bool show_helper_window = true;
+        bool wireframe_enabled = false;
+        ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+};
 
 void collectGarbage(unsigned int VAO, unsigned int VBO, unsigned int shaderProgram) {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteProgram(shaderProgram);
+    // ImGui Cleanup
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     glfwTerminate();
 }
