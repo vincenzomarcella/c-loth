@@ -6,9 +6,6 @@
 const int TARGET_FPS = 60;
 const double SECONDSPERFRAME = 1.0 / TARGET_FPS;
 
-const int WINDOW_WIDTH = 1280;
-const int WINDOW_HEIGHT = 720;
-
 const int N_PHYSICS_UPDATE = 3;
 const int N_CONSTRAIN_SOLVE = 10;
 
@@ -19,6 +16,9 @@ const int XMAX = 500;
 const int YMAX = 500;
 const int ZMAX = 500;
 
+int WINDOW_WIDTH = 1280;
+int WINDOW_HEIGHT = 720;
+
 static Mouse mouse;
 static Camera camera;
 float Camera::fovy = 45.0f;
@@ -28,6 +28,8 @@ bool cursorEnabled = false;
 
 void windowResizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
+    WINDOW_WIDTH = width;
+    WINDOW_HEIGHT = height;
     mouse.set_to_window_size(width, height);
     camera.set_to_window_size(width, height);
 }
