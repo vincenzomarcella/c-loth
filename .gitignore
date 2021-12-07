@@ -5,3 +5,4 @@ main
 c-loth
 *.ini
 imgui.ini
+imgui/
