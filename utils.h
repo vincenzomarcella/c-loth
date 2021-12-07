@@ -33,6 +33,24 @@ int to1d_index(int i, int j, int width) {
     return i * width + j;
 }
 
+// Returns wether a point lies on an edge of the cloth
+bool is_edge_point(int i, int j, int rows, int cols) {
+    return (i == 0 || j == 0 || i == rows - 1 || j == cols - 1);
+}
+// Returns wether a point lies on a corner of the cloth
+bool is_corner_point(int i, int j, int rows, int cols) {
+    return ((i == 0 && j == 0) ||
+            (i == 0 && j == cols - 1) ||
+            (i == rows - 1 && j == 0) ||
+            (i == rows - 1 && j == cols - 1));
+}
+
+// Return a wind vector multiplier based on the point position in the cloth
+float get_wind_vec_multiplier(int i, int j, int rows, int cols) {
+    return (1.0f + is_edge_point(i, j, rows, cols)) *
+           (1.0f + is_corner_point(i, j, rows, cols));
+}
+
 // A class to handle mouse inputs
 struct Mouse {
     double window_x;
