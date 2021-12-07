@@ -119,7 +119,6 @@ struct PointMass {
         int n_neighbors;
 };
 
-
 void timestep(
     PointMass** points,
     glm::vec3* normals,
@@ -151,25 +150,24 @@ void timestep(
             glm::vec3 norm = normals[to1d_index(i, j, cols - 1)];
 
             float wind_strength = map(
-                SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
+                SimplexNoise::noise(noise_xoff * 0.1, noise_yoff * 0.1, time * 0.1 + noise_time_off),
                 -1, 1, 0, MAX_WIND_STRENGHT);
-            float phi = map( // Horizontal rotation angle
+            float hangle = map( // Horizontal rotation angle
                 SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
-                -1, 1, -M_PI, M_PI); 
-            phi = M_PI_2;
-            float theta = map( // Vertical rotation angle
+                -1, 1, -M_PI, M_PI);
+            float vangle = map( // Vertical rotation angle
                 SimplexNoise::noise(noise_xoff, noise_yoff, time + noise_time_off),
-                -1, 1, -M_PI_2, M_PI_2);
-            glm::vec3 wind_vec = glm::vec3(sin(phi) * cos(theta),
-                                           sin(phi) * sin(theta),
-                                           cos(phi));
-            float intensity = max(glm::dot(norm, wind_vec), 0.000001f);
+                -1, 1, 0, M_PI);
+            glm::vec3 wind_vec = glm::vec3(sin(vangle) * sin(hangle),
+                                           cos(vangle),
+                                           sin(vangle) * cos(hangle));
+            float intensity = glm::max(fabs(glm::dot(norm, wind_vec)), 0.00001f);
 
-            wind_vec = wind_strength * (wind_vec * intensity) / 4.0f;
-            wind[to1d_index(i    , j    , cols)] += wind_vec;
-            wind[to1d_index(i + 1, j    , cols)] += wind_vec;
-            wind[to1d_index(i    , j + 1, cols)] += wind_vec;
-            wind[to1d_index(i + 1, j + 1, cols)] += wind_vec;
+            wind_vec = (wind_vec * intensity * wind_strength) / 4.0f;
+            wind[to1d_index(i    , j    , cols)] += wind_vec * get_wind_vec_multiplier(i    , j    , rows, cols);
+            wind[to1d_index(i + 1, j    , cols)] += wind_vec * get_wind_vec_multiplier(i + 1, j    , rows, cols);
+            wind[to1d_index(i    , j + 1, cols)] += wind_vec * get_wind_vec_multiplier(i    , j + 1, rows, cols);
+            wind[to1d_index(i + 1, j + 1, cols)] += wind_vec * get_wind_vec_multiplier(i + 1, j + 1, rows, cols);
 
             noise_xoff += 0.05;
         }
@@ -186,7 +184,6 @@ void timestep(
 
     for (int i = 0; i < rows; i++) {
         // Resetting noise xoffset
-        noise_xoff = 0;
         for (int j = 0; j < cols; j++) {
             int k = j + i * cols; // 1d index
        
@@ -211,9 +208,7 @@ void timestep(
                 points[k]->apply_force(camera->get_direction_vel() * 60000.0f);
            
             points[k]->update(dt);
-            noise_xoff += 0.03;
         }
-        noise_yoff += 0.005;
     }
 
     if (mouse->get_left_button()) {
